@@ -829,6 +829,22 @@ Eucalyptus,85,-117.1610,32.7114`;
 
       const row = document.createElement("div");
       row.className = "config-row";
+
+      // If there are no source columns, show a friendly hint instead of an empty dropdown
+      if (sourceList.length === 0) {
+        const hintText = fieldDef.source === "numeric"
+          ? "no numeric columns in your data"
+          : "no text columns in your data";
+        row.innerHTML = `
+          <div class="config-label"><span class="config-icon">${fieldDef.icon}</span>${fieldDef.label}</div>
+          <div style="flex: 1; color: #888; font-size: 13px; font-style: italic; padding: 8px 0;">${hintText}</div>
+        `;
+        container.appendChild(row);
+        // Make sure the choice is null
+        state.fieldChoices[fieldKey] = null;
+        continue;
+      }
+
       row.innerHTML = `
         <div class="config-label"><span class="config-icon">${fieldDef.icon}</span>${fieldDef.label}</div>
         <select class="config-select" data-field="${fieldKey}">
