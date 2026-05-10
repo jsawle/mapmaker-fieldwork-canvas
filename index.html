@@ -2,60 +2,334 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>MapMaker Fieldwork — Upload (M3)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MapMaker Fieldwork</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f7f8f4;
+      color: #1a1a1a;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    /* Header — NatGeo yellow band */
+    .header {
+      background: #000;
+      border-bottom: 4px solid #FFCC00;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-title { color: white; font-size: 20px; font-weight: 600; letter-spacing: 0.5px; }
+    .header-sub { color: #FFCC00; font-size: 14px; margin-top: 2px; }
+
+    /* Main container */
+    .container { max-width: 800px; margin: 32px auto; padding: 0 24px; }
+
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 32px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      margin-bottom: 24px;
+    }
+
+    h2 { font-size: 18px; margin-bottom: 8px; color: #1a1a1a; }
+    .subtitle { color: #666; font-size: 14px; margin-bottom: 24px; }
+
+    /* Drop zone */
+    .dropzone {
+      border: 2px dashed #c4c4c4;
+      border-radius: 8px;
+      padding: 48px 24px;
+      text-align: center;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      background: #fafafa;
+    }
+    .dropzone:hover, .dropzone.dragover {
+      border-color: #FFCC00;
+      background: #fffdf0;
+    }
+    .dropzone-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+    .dropzone-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+    .dropzone-hint { color: #888; font-size: 14px; margin-bottom: 16px; }
+    .format-pill {
+      display: inline-block;
+      background: #f0f0f0;
+      color: #555;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      margin: 0 4px;
+    }
+
+    /* Buttons */
+    .btn {
+      background: #FFCC00;
+      color: #000;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .btn:hover { background: #f0bf00; }
+    .btn:disabled { background: #ddd; color: #999; cursor: not-allowed; }
+    .btn-secondary {
+      background: white;
+      color: #444;
+      border: 1px solid #c4c4c4;
+    }
+    .btn-secondary:hover { background: #f5f5f5; }
+    .btn-large {
+      padding: 14px 32px;
+      font-size: 16px;
+    }
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    /* Override panel */
+    .config-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .config-row:last-of-type { border-bottom: none; }
+    .config-label {
+      flex: 0 0 180px;
+      color: #555;
+      font-size: 14px;
+    }
+    .config-icon { margin-right: 8px; }
+    .config-select {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #c4c4c4;
+      border-radius: 4px;
+      background: white;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .config-summary {
+      color: #888;
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    /* Status / progress */
+    .progress {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 0;
+    }
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #eee;
+      border-top-color: #FFCC00;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .progress-text { color: #444; font-size: 14px; }
+    .progress-step-done { color: #888; font-size: 13px; padding: 2px 0 2px 32px; }
+    .progress-step-done::before { content: "✓ "; color: #2a8f37; }
+
+    /* Result card */
+    .result-card {
+      background: linear-gradient(180deg, #FFCC00 0%, #f0bf00 100%);
+      color: #000;
+      padding: 32px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .result-title {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .result-detail {
+      font-size: 14px;
+      margin-bottom: 24px;
+      opacity: 0.85;
+    }
+    .result-cta {
+      display: inline-block;
+      background: black;
+      color: white;
+      padding: 14px 32px;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: opacity 0.15s ease;
+    }
+    .result-cta:hover { opacity: 0.85; }
+    .result-meta {
+      margin-top: 16px;
+      font-size: 12px;
+      color: #555;
+      font-family: monospace;
+    }
+
+    /* Error */
+    .error {
+      background: #fff4f4;
+      border-left: 4px solid #d33;
+      padding: 16px;
+      border-radius: 4px;
+      color: #a22;
+      font-size: 14px;
+    }
+    .error strong { display: block; margin-bottom: 4px; }
+
+    /* Hidden helper */
+    .hidden { display: none !important; }
+  </style>
 </head>
 <body>
-  <h1>MapMaker Fieldwork — Upload your data</h1>
-  <p>Drop a CSV with latitude and longitude columns to publish a map in MapMaker.</p>
 
-  <p>
-    <button id="sampleBtn">Try a sample</button>
-  </p>
+<div class="header">
+  <div>
+    <div class="header-title">MAPMAKER · upload fieldwork data</div>
+    <div class="header-sub">Turn your spreadsheet into a map</div>
+  </div>
+</div>
 
-  <div id="dropZone" style="border: 2px dashed #888; padding: 40px; text-align: center; cursor: pointer;">
-    <p><strong>Drop a CSV here</strong></p>
-    <p>or</p>
-    <p><button id="browseBtn">Browse files</button></p>
-    <input type="file" id="fileInput" accept=".csv" style="display: none;">
+<div class="container">
+
+  <!-- STAGE 1: Upload -->
+  <div id="stage-upload" class="card">
+    <h2>Upload your data</h2>
+    <p class="subtitle">Drop a CSV with latitude and longitude columns. We'll do the rest.</p>
+
+    <div id="dropZone" class="dropzone">
+      <div class="dropzone-icon">📍</div>
+      <div class="dropzone-title">Drop your spreadsheet here</div>
+      <div class="dropzone-hint">or click to browse</div>
+      <div><span class="format-pill">CSV</span></div>
+      <input type="file" id="fileInput" accept=".csv" style="display: none;">
+    </div>
+
+    <div class="btn-row" style="margin-top: 24px;">
+      <button id="sampleBtn" class="btn btn-secondary">Try a sample</button>
+      <span style="color: #888; font-size: 13px;">No file? Click here for a tree-survey demo.</span>
+    </div>
   </div>
 
-  <div id="status" style="margin-top: 20px;"></div>
-  <div id="result" style="margin-top: 20px;"></div>
+  <!-- STAGE 2: Configure (override panel) -->
+  <div id="stage-configure" class="card hidden">
+    <h2>Looks good. Here's how we'll map it.</h2>
+    <p class="subtitle" id="configureSubtitle">Found N points. Review the choices below or hit Publish.</p>
 
-  <script>
-    // -----------------------------------------------------------------------
-    // Configuration
-    // -----------------------------------------------------------------------
-    const BRIDGE_URL = "https://68c61fd12475ebdd804374cf052e0d.0e.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/dfe3048cccf84ed78ff9cd1e573d49f1/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=CKzxOsV_xJPL7sde92ypqb2dOIQ97FYyE8tsqRn0f9k";
+    <div class="config-row">
+      <div class="config-label"><span class="config-icon">🎨</span>Color points by</div>
+      <select id="colorBySelect" class="config-select"></select>
+    </div>
 
-    const NATGEO_BASEMAP = {
-      title: "National Geographic Style",
-      baseMapLayers: [
-        { id: "World_Hillshade", title: "World Hillshade", url: "https://services.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer", layerType: "ArcGISTiledMapServiceLayer", itemId: "1b243539f4514b6ba35e7d995890db1d", visibility: true, opacity: 1 },
-        { id: "NatGeoStyleBase", title: "National Geographic Style Base", url: "https://tiles.arcgis.com/tiles/P3ePLMYs2RVChkJx/arcgis/rest/services/NatGeoStyleBase/MapServer", layerType: "ArcGISTiledMapServiceLayer", itemId: "f9a070ff745b4d368b312eb647c53a4e", visibility: true, opacity: 1 },
-        { id: "NatGeoNoLabel", title: "National Geographic Style (no label)", styleUrl: "https://www.arcgis.com/sharing/rest/content/items/be90e1f3c0164cd0adc7920e1679c65f/resources/styles/root.json", itemId: "be90e1f3c0164cd0adc7920e1679c65f", layerType: "VectorTileLayer" }
-      ]
-    };
+    <div class="config-row">
+      <div class="config-label"><span class="config-icon">📏</span>Size points by</div>
+      <select id="sizeBySelect" class="config-select"></select>
+    </div>
 
-    // ColorBrewer Set2 — colorblind-friendly categorical palette
-    const PALETTE = [
-      [102, 194, 165, 255], [252, 141,  98, 255], [141, 160, 203, 255],
-      [231, 138, 195, 255], [166, 216,  84, 255], [255, 217,  47, 255],
-      [229, 196, 148, 255], [179, 179, 179, 255]
-    ];
+    <div class="config-row">
+      <div class="config-label"><span class="config-icon">🏷️</span>Label points with</div>
+      <select id="labelBySelect" class="config-select"></select>
+    </div>
 
-    const NUMERIC_TYPES = new Set(["esriFieldTypeInteger", "esriFieldTypeDouble", "esriFieldTypeSmallInteger"]);
-    const STRING_TYPES = new Set(["esriFieldTypeString"]);
-    const COORD_NAMES = new Set(["latitude", "longitude", "lat", "lon", "lng", "x", "y"]);
-    const OID_NAMES = new Set(["ObjectId", "OBJECTID", "FID"]);
+    <div class="config-summary" id="configSummary"></div>
 
-    const ANALYZE_URL = "https://www.arcgis.com/sharing/rest/content/features/analyze";
-    const GENERATE_URL = "https://www.arcgis.com/sharing/rest/content/features/generate";
+    <div class="btn-row" style="margin-top: 24px;">
+      <button id="publishBtn" class="btn btn-large">Publish to MapMaker</button>
+      <button id="restartBtn" class="btn btn-secondary">Start over</button>
+    </div>
+  </div>
 
-    // -----------------------------------------------------------------------
-    // Sample CSV (for the "Try a sample" button)
-    // -----------------------------------------------------------------------
-    const SAMPLE_CSV = `Species,DBH_cm,Longitude,Latitude
+  <!-- STAGE 3: Publishing -->
+  <div id="stage-publishing" class="card hidden">
+    <h2>Publishing your map…</h2>
+    <p class="subtitle">This usually takes about 5 seconds.</p>
+
+    <div id="progressList"></div>
+  </div>
+
+  <!-- STAGE 4: Result -->
+  <div id="stage-result" class="card hidden" style="background: transparent; box-shadow: none; padding: 0;">
+    <div class="result-card">
+      <div class="result-title">Your map is ready 🎉</div>
+      <div class="result-detail" id="resultDetail"></div>
+      <a id="resultCta" class="result-cta" target="_blank" rel="noopener">Open in MapMaker</a>
+      <div class="result-meta" id="resultMeta"></div>
+    </div>
+    <div class="btn-row" style="margin-top: 24px; justify-content: center;">
+      <button id="anotherBtn" class="btn btn-secondary">Map another file</button>
+    </div>
+  </div>
+
+  <!-- Error display (shown inline) -->
+  <div id="errorBox" class="card hidden">
+    <div class="error">
+      <strong>Something went wrong</strong>
+      <span id="errorText"></span>
+    </div>
+    <div class="btn-row" style="margin-top: 16px;">
+      <button id="errorRestartBtn" class="btn btn-secondary">Try again</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // -----------------------------------------------------------------------
+  // Configuration
+  // -----------------------------------------------------------------------
+  const BRIDGE_URL = "https://68c61fd12475ebdd804374cf052e0d.0e.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/dfe3048cccf84ed78ff9cd1e573d49f1/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=CKzxOsV_xJPL7sde92ypqb2dOIQ97FYyE8tsqRn0f9k";
+
+  const NATGEO_BASEMAP = {
+    title: "National Geographic Style",
+    baseMapLayers: [
+      { id: "World_Hillshade", title: "World Hillshade", url: "https://services.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer", layerType: "ArcGISTiledMapServiceLayer", itemId: "1b243539f4514b6ba35e7d995890db1d", visibility: true, opacity: 1 },
+      { id: "NatGeoStyleBase", title: "National Geographic Style Base", url: "https://tiles.arcgis.com/tiles/P3ePLMYs2RVChkJx/arcgis/rest/services/NatGeoStyleBase/MapServer", layerType: "ArcGISTiledMapServiceLayer", itemId: "f9a070ff745b4d368b312eb647c53a4e", visibility: true, opacity: 1 },
+      { id: "NatGeoNoLabel", title: "National Geographic Style (no label)", styleUrl: "https://www.arcgis.com/sharing/rest/content/items/be90e1f3c0164cd0adc7920e1679c65f/resources/styles/root.json", itemId: "be90e1f3c0164cd0adc7920e1679c65f", layerType: "VectorTileLayer" }
+    ]
+  };
+
+  const PALETTE = [
+    [102, 194, 165, 255], [252, 141,  98, 255], [141, 160, 203, 255],
+    [231, 138, 195, 255], [166, 216,  84, 255], [255, 217,  47, 255],
+    [229, 196, 148, 255], [179, 179, 179, 255]
+  ];
+
+  const NUMERIC_TYPES = new Set(["esriFieldTypeInteger", "esriFieldTypeDouble", "esriFieldTypeSmallInteger"]);
+  const STRING_TYPES = new Set(["esriFieldTypeString"]);
+  const COORD_NAMES = new Set(["latitude", "longitude", "lat", "lon", "lng", "x", "y"]);
+  const OID_NAMES = new Set(["ObjectId", "OBJECTID", "FID"]);
+
+  const ANALYZE_URL = "https://www.arcgis.com/sharing/rest/content/features/analyze";
+  const GENERATE_URL = "https://www.arcgis.com/sharing/rest/content/features/generate";
+
+  const NONE_VALUE = "__none__";
+
+  // Sample CSV
+  const SAMPLE_CSV = `Species,DBH_cm,Longitude,Latitude
 Coast Live Oak,45,-117.1656,32.7114
 Eucalyptus,80,-117.1626,32.7093
 Jacaranda,30,-117.1601,32.7104
@@ -72,391 +346,523 @@ Coast Live Oak,50,-117.1638,32.7125
 Coral Tree,35,-117.1591,32.7125
 Eucalyptus,85,-117.1610,32.7114`;
 
-    // -----------------------------------------------------------------------
-    // UI helpers
-    // -----------------------------------------------------------------------
-    const statusEl = document.getElementById("status");
-    const resultEl = document.getElementById("result");
-    const dropZone = document.getElementById("dropZone");
-    const fileInput = document.getElementById("fileInput");
-    const browseBtn = document.getElementById("browseBtn");
-    const sampleBtn = document.getElementById("sampleBtn");
+  // -----------------------------------------------------------------------
+  // State
+  // -----------------------------------------------------------------------
+  const state = {
+    csvBlob: null,
+    displayName: null,
+    fcLayer: null,
+    features: [],
+    fields: [],
+    numeric: [],
+    categorical: [],
+    autoPicks: { color: null, size: null, label: null },
+    isSample: false,
+  };
 
-    function setStatus(text) {
-      statusEl.innerHTML = text ? `<p>${text}</p>` : "";
-    }
+  // -----------------------------------------------------------------------
+  // Stage management
+  // -----------------------------------------------------------------------
+  const stages = {
+    upload: document.getElementById("stage-upload"),
+    configure: document.getElementById("stage-configure"),
+    publishing: document.getElementById("stage-publishing"),
+    result: document.getElementById("stage-result"),
+    error: document.getElementById("errorBox"),
+  };
 
-    function showResult(html) {
-      resultEl.innerHTML = html;
-    }
+  function showStage(name) {
+    Object.entries(stages).forEach(([k, el]) => {
+      if (k === name) el.classList.remove("hidden");
+      else el.classList.add("hidden");
+    });
+  }
 
-    function showError(message) {
-      setStatus("");
-      showResult(`<p style="color: crimson;"><strong>Error:</strong> ${message}</p>`);
-      sampleBtn.disabled = false;
-      browseBtn.disabled = false;
-    }
+  // -----------------------------------------------------------------------
+  // AGOL: analyze + generate
+  // -----------------------------------------------------------------------
+  async function analyzeCSV(csvBlob) {
+    const fd = new FormData();
+    fd.append("f", "json");
+    fd.append("fileType", "csv");
+    fd.append("analyzeParameters", JSON.stringify({ enableGlobalGeocoding: false }));
+    fd.append("file", csvBlob, "upload.csv");
 
-    // -----------------------------------------------------------------------
-    // AGOL: analyze + generate (anonymous)
-    // -----------------------------------------------------------------------
-    async function analyzeCSV(csvBlob) {
-      const fd = new FormData();
-      fd.append("f", "json");
-      fd.append("fileType", "csv");
-      fd.append("analyzeParameters", JSON.stringify({ enableGlobalGeocoding: false }));
-      fd.append("file", csvBlob, "upload.csv");
+    const r = await fetch(ANALYZE_URL, { method: "POST", body: fd });
+    if (!r.ok) throw new Error(`AGOL analyze HTTP ${r.status}`);
+    const data = await r.json();
+    if (data.error) throw new Error(`AGOL analyze: ${data.error.message || JSON.stringify(data.error)}`);
+    return data.publishParameters;
+  }
 
-      const r = await fetch(ANALYZE_URL, { method: "POST", body: fd });
-      if (!r.ok) throw new Error(`Analyze HTTP ${r.status}`);
-      const data = await r.json();
-      if (data.error) throw new Error(`AGOL analyze: ${data.error.message || JSON.stringify(data.error)}`);
-      return data.publishParameters;
-    }
+  async function generateFeatures(csvBlob, publishParameters) {
+    const fd = new FormData();
+    fd.append("f", "json");
+    fd.append("fileType", "csv");
+    fd.append("publishParameters", JSON.stringify(publishParameters));
+    fd.append("file", csvBlob, "upload.csv");
 
-    async function generateFeatures(csvBlob, publishParameters) {
-      const fd = new FormData();
-      fd.append("f", "json");
-      fd.append("fileType", "csv");
-      fd.append("publishParameters", JSON.stringify(publishParameters));
-      fd.append("file", csvBlob, "upload.csv");
+    const r = await fetch(GENERATE_URL, { method: "POST", body: fd });
+    if (!r.ok) throw new Error(`AGOL generate HTTP ${r.status}`);
+    const data = await r.json();
+    if (data.error) throw new Error(`AGOL generate: ${data.error.message || JSON.stringify(data.error)}`);
+    return data.featureCollection.layers[0];
+  }
 
-      const r = await fetch(GENERATE_URL, { method: "POST", body: fd });
-      if (!r.ok) throw new Error(`Generate HTTP ${r.status}`);
-      const data = await r.json();
-      if (data.error) throw new Error(`AGOL generate: ${data.error.message || JSON.stringify(data.error)}`);
-      return data.featureCollection.layers[0];
-    }
-
-    // -----------------------------------------------------------------------
-    // Renderer detection — picks one of four strategies
-    // -----------------------------------------------------------------------
-    function classifyColumns(fields, features) {
-      const numeric = [];
-      const categorical = [];
-      for (const f of fields) {
-        if (OID_NAMES.has(f.name)) continue;
-        if (COORD_NAMES.has(f.name.toLowerCase())) continue;
-        if (NUMERIC_TYPES.has(f.type)) {
-          numeric.push(f.name);
-        } else if (STRING_TYPES.has(f.type)) {
-          const unique = new Set();
-          for (const feat of features) {
-            const v = feat.attributes[f.name];
-            if (v !== null && v !== undefined && v !== "") unique.add(v);
-          }
-          if (unique.size >= 2 && unique.size <= 12) categorical.push(f.name);
+  // -----------------------------------------------------------------------
+  // Column classification
+  // -----------------------------------------------------------------------
+  function classifyColumns(fields, features) {
+    const numeric = [];
+    const categorical = [];
+    for (const f of fields) {
+      if (OID_NAMES.has(f.name)) continue;
+      if (COORD_NAMES.has(f.name.toLowerCase())) continue;
+      if (NUMERIC_TYPES.has(f.type)) {
+        numeric.push(f.name);
+      } else if (STRING_TYPES.has(f.type)) {
+        const unique = new Set();
+        for (const feat of features) {
+          const v = feat.attributes[f.name];
+          if (v !== null && v !== undefined && v !== "") unique.add(v);
         }
+        if (unique.size >= 2 && unique.size <= 12) categorical.push(f.name);
       }
-      return { numeric, categorical };
+    }
+    return { numeric, categorical };
+  }
+
+  function pickAutoDefaults(numeric, categorical) {
+    return {
+      color: categorical[0] || null,
+      size: numeric[0] || null,
+      label: categorical[0] || null,
+    };
+  }
+
+  // -----------------------------------------------------------------------
+  // Renderer building
+  // -----------------------------------------------------------------------
+  function buildPieChartRenderer(numericFields) {
+    return {
+      type: "pieChart",
+      attributes: numericFields.slice(0, 8).map((fld, i) => ({
+        field: fld,
+        color: PALETTE[i % PALETTE.length],
+        label: fld.replace(/_/g, " ")
+      })),
+      size: 24,
+      holePercentage: 0.4,
+      outline: { color: [255, 255, 255, 255], width: 0.5, type: "esriSLS", style: "esriSLSSolid" }
+    };
+  }
+
+  function buildSimpleSymbol(color, size) {
+    return {
+      type: "esriSMS", style: "esriSMSCircle",
+      color: color || [102, 194, 165, 200],
+      size: size || 12,
+      outline: { color: [255, 255, 255, 255], width: 1 }
+    };
+  }
+
+  function buildSizeVariable(field, features) {
+    const values = features.map(f => f.attributes[field]).filter(v => v !== null && !isNaN(v));
+    if (!values.length) return null;
+    return {
+      type: "sizeInfo",
+      field, minSize: 8, maxSize: 40,
+      minDataValue: Math.min(...values),
+      maxDataValue: Math.max(...values)
+    };
+  }
+
+  function buildRenderer(colorField, sizeField, features) {
+    // No color, no size → simple
+    if (!colorField && !sizeField) {
+      return { type: "simple", symbol: buildSimpleSymbol(), label: "" };
     }
 
-    function pickStrategy(numeric, categorical) {
-      if (numeric.length >= 3) return "pie_chart";
-      if (categorical.length >= 1 && numeric.length >= 1) return "unique_with_size";
-      if (categorical.length >= 1) return "unique_values";
-      if (numeric.length >= 1) return "proportional";
-      return "simple";
+    // Size only → proportional
+    if (!colorField && sizeField) {
+      const sv = buildSizeVariable(sizeField, features);
+      const r = { type: "simple", symbol: buildSimpleSymbol(), label: sizeField.replace(/_/g, " ") };
+      if (sv) r.visualVariables = [sv];
+      return r;
     }
 
-    // -----------------------------------------------------------------------
-    // Renderer builders
-    // -----------------------------------------------------------------------
-    function buildPieChartRenderer(numericFields) {
-      return {
-        type: "pieChart",
-        attributes: numericFields.slice(0, 8).map((fld, i) => ({
-          field: fld,
-          color: PALETTE[i % PALETTE.length],
-          label: fld.replace(/_/g, " ")
-        })),
-        size: 24,
-        holePercentage: 0.4,
-        outline: { color: [255, 255, 255, 255], width: 0.5, type: "esriSLS", style: "esriSLSSolid" }
-      };
+    // Color only → unique value
+    if (colorField && !sizeField) {
+      return buildUniqueRenderer(colorField, features);
     }
 
-    function buildProportionalRenderer(field, features) {
-      const values = features.map(f => f.attributes[field]).filter(v => v !== null && !isNaN(v));
-      const min = Math.min(...values);
-      const max = Math.max(...values);
-      return {
-        type: "simple",
-        symbol: {
-          type: "esriSMS", style: "esriSMSCircle",
-          color: [102, 194, 165, 200],
-          size: 12,
-          outline: { color: [255, 255, 255, 255], width: 1 }
-        },
-        visualVariables: [{
-          type: "sizeInfo",
-          field: field,
-          minSize: 8, maxSize: 40,
-          minDataValue: min, maxDataValue: max
-        }],
-        label: field.replace(/_/g, " ")
-      };
+    // Both → unique with size
+    const r = buildUniqueRenderer(colorField, features);
+    const sv = buildSizeVariable(sizeField, features);
+    if (sv) r.visualVariables = [sv];
+    return r;
+  }
+
+  function buildUniqueRenderer(field, features) {
+    const unique = new Set();
+    for (const f of features) {
+      const v = f.attributes[field];
+      if (v !== null && v !== undefined && v !== "") unique.add(v);
+    }
+    const values = Array.from(unique).sort();
+    return {
+      type: "uniqueValue",
+      field1: field,
+      defaultSymbol: buildSimpleSymbol([179, 179, 179, 200], 12),
+      defaultLabel: "Other",
+      uniqueValueInfos: values.map((val, i) => ({
+        value: val,
+        label: String(val),
+        symbol: buildSimpleSymbol(PALETTE[i % PALETTE.length], 12)
+      }))
+    };
+  }
+
+  function buildLabelingInfo(labelField) {
+    if (!labelField) return null;
+    return [{
+      labelExpression: `[${labelField}]`,
+      labelExpressionInfo: { expression: `$feature.${labelField}` },
+      labelPlacement: "esriServerPointLabelPlacementAboveCenter",
+      useCodedValues: true,
+      symbol: {
+        type: "esriTS",
+        color: [50, 50, 50, 255],
+        haloColor: [255, 255, 255, 255],
+        haloSize: 1.5,
+        font: { family: "Arial", size: 10, weight: "bold" }
+      },
+      minScale: 0, maxScale: 0
+    }];
+  }
+
+  // -----------------------------------------------------------------------
+  // Build operational layer + web map
+  // -----------------------------------------------------------------------
+  function buildOperationalLayer(fcLayer, fields, features, choices, baseTitle) {
+    const renderer = buildRenderer(choices.color, choices.size, features);
+    const labelingInfo = buildLabelingInfo(choices.label);
+
+    const popupTitle = choices.color
+      ? `{${choices.color}}` + (choices.size ? ` – {${choices.size}}` : "")
+      : (choices.size ? `{${choices.size}}` : "Point");
+
+    const popupFieldInfos = fields
+      .filter(f => !OID_NAMES.has(f.name) && !COORD_NAMES.has(f.name.toLowerCase()))
+      .map(f => ({ fieldName: f.name, label: f.name.replace(/_/g, " "), visible: true }));
+
+    const popupInfo = { title: popupTitle, fieldInfos: popupFieldInfos };
+
+    const drawingInfo = { renderer };
+    if (labelingInfo) {
+      drawingInfo.labelingInfo = labelingInfo;
+      drawingInfo.showLabels = true;
     }
 
-    function buildUniqueValueRenderer(field, features) {
-      const unique = new Set();
-      for (const f of features) {
-        const v = f.attributes[field];
-        if (v !== null && v !== undefined && v !== "") unique.add(v);
-      }
-      const values = Array.from(unique).sort();
-      return {
-        type: "uniqueValue",
-        field1: field,
-        defaultSymbol: {
-          type: "esriSMS", style: "esriSMSCircle",
-          color: [179, 179, 179, 200], size: 12,
-          outline: { color: [255, 255, 255, 255], width: 1 }
-        },
-        defaultLabel: "Other",
-        uniqueValueInfos: values.map((val, i) => ({
-          value: val,
-          label: String(val),
-          symbol: {
-            type: "esriSMS", style: "esriSMSCircle",
-            color: PALETTE[i % PALETTE.length],
-            size: 12,
-            outline: { color: [255, 255, 255, 255], width: 1 }
-          }
-        }))
-      };
-    }
+    const layerDef = {
+      ...fcLayer.layerDefinition,
+      drawingInfo,
+      showLegend: true,
+      ...(labelingInfo ? { hasLabels: true } : {})
+    };
 
-    function buildUniqueWithSizeRenderer(catField, numField, features) {
-      const renderer = buildUniqueValueRenderer(catField, features);
-      const values = features.map(f => f.attributes[numField]).filter(v => v !== null && !isNaN(v));
-      renderer.visualVariables = [{
-        type: "sizeInfo",
-        field: numField,
-        minSize: 8, maxSize: 40,
-        minDataValue: Math.min(...values),
-        maxDataValue: Math.max(...values)
-      }];
-      return renderer;
-    }
-
-    // -----------------------------------------------------------------------
-    // Build the operational layer
-    // -----------------------------------------------------------------------
-    function buildOperationalLayer(fcLayer, fields, features, strategy, numeric, categorical, baseTitle) {
-      let renderer, popupTitle;
-      switch (strategy) {
-        case "pie_chart":
-          renderer = buildPieChartRenderer(numeric);
-          popupTitle = "Composition breakdown";
-          break;
-        case "proportional":
-          renderer = buildProportionalRenderer(numeric[0], features);
-          popupTitle = `{${numeric[0]}}`;
-          break;
-        case "unique_values":
-          renderer = buildUniqueValueRenderer(categorical[0], features);
-          popupTitle = `{${categorical[0]}}`;
-          break;
-        case "unique_with_size":
-          renderer = buildUniqueWithSizeRenderer(categorical[0], numeric[0], features);
-          popupTitle = `{${categorical[0]}} – {${numeric[0]}}`;
-          break;
-        default:
-          renderer = {
-            type: "simple",
-            symbol: {
-              type: "esriSMS", style: "esriSMSCircle",
-              color: [102, 194, 165, 200], size: 10,
-              outline: { color: [255, 255, 255, 255], width: 1 }
-            }
-          };
-          popupTitle = "Point";
-      }
-
-      const popupFieldInfos = fields
-        .filter(f => !OID_NAMES.has(f.name) && !COORD_NAMES.has(f.name.toLowerCase()))
-        .map(f => ({ fieldName: f.name, label: f.name.replace(/_/g, " "), visible: true }));
-
-      const popupInfo = { title: popupTitle, fieldInfos: popupFieldInfos };
-
-      const layerDef = {
-        ...fcLayer.layerDefinition,
-        drawingInfo: { renderer },
-        showLegend: true
-      };
-
-      return {
-        id: `fieldwork_${Date.now()}`,
-        title: baseTitle,
-        layerType: "ArcGISFeatureLayer",
-        visibility: true,
-        opacity: 1,
+    return {
+      id: `fieldwork_${Date.now()}`,
+      title: baseTitle,
+      layerType: "ArcGISFeatureLayer",
+      visibility: true,
+      opacity: 1,
+      showLegend: true,
+      popupInfo,
+      featureCollection: {
         showLegend: true,
-        popupInfo,
-        featureCollection: {
-          showLegend: true,
-          layers: [{
-            layerDefinition: layerDef,
-            featureSet: fcLayer.featureSet,
-            popupInfo,
-            showLegend: true
-          }]
+        layers: [{
+          layerDefinition: layerDef,
+          featureSet: fcLayer.featureSet,
+          popupInfo,
+          showLegend: true
+        }]
+      }
+    };
+  }
+
+  function computeExtent(features) {
+    const xs = features.map(f => f.geometry.x);
+    const ys = features.map(f => f.geometry.y);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const padX = Math.max((maxX - minX) * 0.2, 100);
+    const padY = Math.max((maxY - minY) * 0.2, 100);
+    return {
+      xmin: minX - padX, ymin: minY - padY,
+      xmax: maxX + padX, ymax: maxY + padY,
+      spatialReference: { wkid: 102100, latestWkid: 3857 }
+    };
+  }
+
+  function buildWebMapJson(operationalLayer, extent) {
+    return {
+      operationalLayers: [operationalLayer],
+      baseMap: NATGEO_BASEMAP,
+      spatialReference: { wkid: 102100, latestWkid: 3857 },
+      initialState: { viewpoint: { targetGeometry: extent } },
+      timeZone: "system",
+      version: "2.33",
+      authoringApp: "MapMakerFieldworkPOC-Canvas",
+      authoringAppVersion: "0.4-m4"
+    };
+  }
+
+  async function publishViaBridge(title, snippet, tags, webMapJson) {
+    const r = await fetch(BRIDGE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, snippet, tags, webMapJson })
+    });
+    if (!r.ok) throw new Error(`Bridge HTTP ${r.status}`);
+    const data = await r.json();
+    if (!data.mapMakerUrl) throw new Error("Bridge response missing mapMakerUrl");
+    return data;
+  }
+
+  // -----------------------------------------------------------------------
+  // Validation
+  // -----------------------------------------------------------------------
+  function validateFeatures(features) {
+    if (features.length < 2) {
+      throw new Error("Your file needs at least 2 rows of data with coordinates.");
+    }
+    const withGeom = features.filter(f => f.geometry && typeof f.geometry.x === "number");
+    if (withGeom.length < features.length * 0.5) {
+      throw new Error("Most rows don't have valid coordinates. Make sure your CSV has columns named latitude/longitude (or lat/lon) with numeric values.");
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Workflow stages
+  // -----------------------------------------------------------------------
+  async function loadAndAnalyze(csvBlob, displayName) {
+    state.csvBlob = csvBlob;
+    state.displayName = displayName;
+
+    showStage("publishing");
+    const progressList = document.getElementById("progressList");
+    progressList.innerHTML = `
+      <div class="progress"><div class="spinner"></div><div class="progress-text">Reading your file…</div></div>
+    `;
+
+    try {
+      const publishParams = await analyzeCSV(csvBlob);
+      progressList.innerHTML += `<div class="progress-step-done">Your file was read</div>`;
+      progressList.innerHTML += `<div class="progress"><div class="spinner"></div><div class="progress-text">Detecting columns and coordinates…</div></div>`;
+
+      const fcLayer = await generateFeatures(csvBlob, publishParams);
+      state.fcLayer = fcLayer;
+      state.features = fcLayer.featureSet.features;
+      state.fields = fcLayer.layerDefinition.fields;
+      validateFeatures(state.features);
+
+      const { numeric, categorical } = classifyColumns(state.fields, state.features);
+      state.numeric = numeric;
+      state.categorical = categorical;
+      state.autoPicks = pickAutoDefaults(numeric, categorical);
+
+      // Brief pause to let the user feel the work being done
+      await new Promise(r => setTimeout(r, 400));
+      showConfigurePanel();
+    } catch (err) {
+      showError(err.message);
+    }
+  }
+
+  function showConfigurePanel() {
+    showStage("configure");
+    document.getElementById("configureSubtitle").textContent =
+      `Found ${state.features.length} points and ${state.numeric.length + state.categorical.length} usable columns. Review the choices below or hit Publish.`;
+
+    populateSelect("colorBySelect", state.categorical, state.autoPicks.color);
+    populateSelect("sizeBySelect", state.numeric, state.autoPicks.size);
+    populateSelect("labelBySelect", state.categorical, state.autoPicks.label);
+
+    updateConfigSummary();
+
+    if (state.isSample) {
+      const summaryEl = document.getElementById("configSummary");
+      summaryEl.innerHTML = `<em>Auto-publishing in 2 seconds…</em>` + (summaryEl.innerHTML ? `<br>${summaryEl.innerHTML}` : "");
+      setTimeout(() => {
+        if (!stages.configure.classList.contains("hidden")) {
+          state.isSample = false;
+          publishMap();
         }
-      };
+      }, 2000);
     }
+  }
 
-    // -----------------------------------------------------------------------
-    // Compute extent from features
-    // -----------------------------------------------------------------------
-    function computeExtent(features) {
-      const xs = features.map(f => f.geometry.x);
-      const ys = features.map(f => f.geometry.y);
-      const minX = Math.min(...xs), maxX = Math.max(...xs);
-      const minY = Math.min(...ys), maxY = Math.max(...ys);
-      const padX = Math.max((maxX - minX) * 0.2, 100);
-      const padY = Math.max((maxY - minY) * 0.2, 100);
-      return {
-        xmin: minX - padX, ymin: minY - padY,
-        xmax: maxX + padX, ymax: maxY + padY,
-        spatialReference: { wkid: 102100, latestWkid: 3857 }
-      };
+  function populateSelect(id, options, defaultValue) {
+    const sel = document.getElementById(id);
+    sel.innerHTML = "";
+    const noneOpt = document.createElement("option");
+    noneOpt.value = NONE_VALUE;
+    noneOpt.textContent = "— none —";
+    sel.appendChild(noneOpt);
+    for (const opt of options) {
+      const o = document.createElement("option");
+      o.value = opt;
+      o.textContent = opt.replace(/_/g, " ");
+      sel.appendChild(o);
     }
-
-    // -----------------------------------------------------------------------
-    // Build the complete web map JSON
-    // -----------------------------------------------------------------------
-    function buildWebMapJson(operationalLayer, extent) {
-      return {
-        operationalLayers: [operationalLayer],
-        baseMap: NATGEO_BASEMAP,
-        spatialReference: { wkid: 102100, latestWkid: 3857 },
-        initialState: { viewpoint: { targetGeometry: extent } },
-        timeZone: "system",
-        version: "2.33",
-        authoringApp: "MapMakerFieldworkPOC-Canvas",
-        authoringAppVersion: "0.3-m3"
-      };
-    }
-
-    // -----------------------------------------------------------------------
-    // Send to bridge
-    // -----------------------------------------------------------------------
-    async function publishViaBridge(title, snippet, tags, webMapJson) {
-      const r = await fetch(BRIDGE_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, snippet, tags, webMapJson })
-      });
-      if (!r.ok) throw new Error(`Bridge HTTP ${r.status}`);
-      const data = await r.json();
-      if (!data.mapMakerUrl) throw new Error("Bridge response missing mapMakerUrl");
-      return data;
-    }
-
-    // -----------------------------------------------------------------------
-    // Validate (Layer 2 — basic data-shape checks)
-    // -----------------------------------------------------------------------
-    function validateFeatures(features) {
-      if (features.length < 2) {
-        throw new Error("Your file needs at least 2 rows of data with coordinates.");
-      }
-      const withGeom = features.filter(f => f.geometry && typeof f.geometry.x === "number");
-      if (withGeom.length < features.length * 0.5) {
-        throw new Error("Most rows don't have valid coordinates. Make sure your CSV has columns named latitude/longitude (or lat/lon) with numeric values.");
-      }
-    }
-
-    // -----------------------------------------------------------------------
-    // Main pipeline — turn a CSV blob into a published map
-    // -----------------------------------------------------------------------
-    async function processCSV(csvBlob, displayName) {
-      sampleBtn.disabled = true;
-      browseBtn.disabled = true;
-      showResult("");
-
-      try {
-        setStatus("Reading your file…");
-        await new Promise(r => setTimeout(r, 100));
-
-        setStatus("Asking ArcGIS to parse your data…");
-        const publishParams = await analyzeCSV(csvBlob);
-
-        setStatus("Building features from your data…");
-        const fcLayer = await generateFeatures(csvBlob, publishParams);
-        const features = fcLayer.featureSet.features;
-        const fields = fcLayer.layerDefinition.fields;
-
-        validateFeatures(features);
-
-        const { numeric, categorical } = classifyColumns(fields, features);
-        const strategy = pickStrategy(numeric, categorical);
-
-        setStatus(`Building map (${strategy.replace(/_/g, " ")})…`);
-        const baseTitle = displayName.replace(/\.csv$/i, "").replace(/_/g, " ");
-        const opLayer = buildOperationalLayer(fcLayer, fields, features, strategy, numeric, categorical, baseTitle);
-        const extent = computeExtent(features);
-        const webMapJson = buildWebMapJson(opLayer, extent);
-
-        setStatus("Publishing your map…");
-        const result = await publishViaBridge(
-          baseTitle,
-          `Fieldwork data: ${features.length} points (${strategy})`,
-          `mapmaker, fieldwork, ${strategy}`,
-          webMapJson
-        );
-
-        setStatus("");
-        showResult(`
-          <p><strong>Your map is ready.</strong> ${features.length} points published.</p>
-          <p><a href="${result.mapMakerUrl}" target="_blank" rel="noopener" style="font-size: 1.2em;">Open in MapMaker</a></p>
-          <p><small>Item ID: ${result.itemId}</small></p>
-        `);
-      } catch (err) {
-        showError(err.message);
-        console.error(err);
-      } finally {
-        sampleBtn.disabled = false;
-        browseBtn.disabled = false;
-      }
-    }
-
-    // -----------------------------------------------------------------------
-    // Wire up the UI
-    // -----------------------------------------------------------------------
-    browseBtn.addEventListener("click", () => fileInput.click());
-
-    fileInput.addEventListener("change", () => {
-      const file = fileInput.files[0];
-      if (file) processCSV(file, file.name);
-      fileInput.value = "";
+    sel.value = defaultValue || NONE_VALUE;
+    sel.addEventListener("change", () => {
+      // User interaction cancels auto-publish
+      state.isSample = false;
+      updateConfigSummary();
     });
+  }
 
-    dropZone.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      dropZone.style.borderColor = "#0078d4";
-    });
+  function getCurrentChoices() {
+    return {
+      color: getSelectValue("colorBySelect"),
+      size: getSelectValue("sizeBySelect"),
+      label: getSelectValue("labelBySelect"),
+    };
+  }
 
-    dropZone.addEventListener("dragleave", () => {
-      dropZone.style.borderColor = "#888";
-    });
+  function getSelectValue(id) {
+    const v = document.getElementById(id).value;
+    return v === NONE_VALUE ? null : v;
+  }
 
-    dropZone.addEventListener("drop", (e) => {
-      e.preventDefault();
-      dropZone.style.borderColor = "#888";
-      const file = e.dataTransfer.files[0];
-      if (!file) return;
-      if (!file.name.toLowerCase().endsWith(".csv")) {
-        showError("This tool only accepts CSV files. Please save your spreadsheet as CSV first.");
-        return;
-      }
-      processCSV(file, file.name);
-    });
+  function updateConfigSummary() {
+    const choices = getCurrentChoices();
+    let summary = "";
+    if (choices.color && choices.size) {
+      summary = `Each point will show ${state.features.length} trees, colored by ${choices.color} and sized by ${choices.size}.`;
+    } else if (choices.color) {
+      summary = `${state.features.length} points colored by ${choices.color}.`;
+    } else if (choices.size) {
+      summary = `${state.features.length} points sized by ${choices.size}.`;
+    } else {
+      summary = `${state.features.length} simple points.`;
+    }
+    if (choices.label) summary += ` Labels show ${choices.label}.`;
+    const el = document.getElementById("configSummary");
+    if (state.isSample) {
+      el.innerHTML = `<em>Auto-publishing in 2 seconds…</em><br>${summary}`;
+    } else {
+      el.textContent = summary;
+    }
+  }
 
-    sampleBtn.addEventListener("click", () => {
-      const blob = new Blob([SAMPLE_CSV], { type: "text/csv" });
-      processCSV(blob, "Sample Tree Survey.csv");
+  async function publishMap() {
+    showStage("publishing");
+    const progressList = document.getElementById("progressList");
+
+    progressList.innerHTML = `
+      <div class="progress-step-done">Your file was read</div>
+      <div class="progress-step-done">Columns detected</div>
+      <div class="progress"><div class="spinner"></div><div class="progress-text">Building your map…</div></div>
+    `;
+
+    try {
+      const choices = getCurrentChoices();
+      const baseTitle = state.displayName.replace(/\.csv$/i, "").replace(/_/g, " ");
+      const opLayer = buildOperationalLayer(state.fcLayer, state.fields, state.features, choices, baseTitle);
+      const extent = computeExtent(state.features);
+      const webMapJson = buildWebMapJson(opLayer, extent);
+
+      progressList.innerHTML = `
+        <div class="progress-step-done">Your file was read</div>
+        <div class="progress-step-done">Columns detected</div>
+        <div class="progress-step-done">Map built</div>
+        <div class="progress"><div class="spinner"></div><div class="progress-text">Publishing to ArcGIS…</div></div>
+      `;
+
+      const result = await publishViaBridge(
+        baseTitle,
+        `Fieldwork data: ${state.features.length} points`,
+        `mapmaker, fieldwork`,
+        webMapJson
+      );
+
+      showResult(result, state.features.length, choices);
+    } catch (err) {
+      showError(err.message);
+    }
+  }
+
+  function showResult(result, pointCount, choices) {
+    showStage("result");
+    let detailParts = [`${pointCount} points published`];
+    if (choices.color) detailParts.push(`colored by ${choices.color}`);
+    if (choices.size) detailParts.push(`sized by ${choices.size}`);
+    document.getElementById("resultDetail").textContent = detailParts.join(" · ");
+    document.getElementById("resultCta").href = result.mapMakerUrl;
+    document.getElementById("resultMeta").textContent = `Item ID: ${result.itemId}`;
+  }
+
+  function showError(message) {
+    showStage("error");
+    document.getElementById("errorText").textContent = message;
+  }
+
+  function reset() {
+    Object.assign(state, {
+      csvBlob: null, displayName: null, fcLayer: null,
+      features: [], fields: [], numeric: [], categorical: [],
+      autoPicks: { color: null, size: null, label: null },
+      isSample: false,
     });
-  </script>
+    showStage("upload");
+  }
+
+  // -----------------------------------------------------------------------
+  // Wire up UI
+  // -----------------------------------------------------------------------
+  const dropZone = document.getElementById("dropZone");
+  const fileInput = document.getElementById("fileInput");
+
+  dropZone.addEventListener("click", () => fileInput.click());
+
+  fileInput.addEventListener("change", () => {
+    const file = fileInput.files[0];
+    if (file) loadAndAnalyze(file, file.name);
+    fileInput.value = "";
+  });
+
+  dropZone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropZone.classList.add("dragover");
+  });
+  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+  dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZone.classList.remove("dragover");
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      showError("This tool only accepts CSV files. Please save your spreadsheet as CSV first.");
+      return;
+    }
+    loadAndAnalyze(file, file.name);
+  });
+
+  document.getElementById("sampleBtn").addEventListener("click", () => {
+    state.isSample = true;
+    const blob = new Blob([SAMPLE_CSV], { type: "text/csv" });
+    loadAndAnalyze(blob, "Sample Tree Survey.csv");
+  });
+
+  document.getElementById("publishBtn").addEventListener("click", () => publishMap());
+  document.getElementById("restartBtn").addEventListener("click", reset);
+  document.getElementById("anotherBtn").addEventListener("click", reset);
+  document.getElementById("errorRestartBtn").addEventListener("click", reset);
+</script>
+
 </body>
 </html>
