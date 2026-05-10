@@ -2,192 +2,460 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>MapMaker Fieldwork — Bridge Test</title>
+  <title>MapMaker Fieldwork — Upload (M3)</title>
 </head>
 <body>
-  <h1>MapMaker Fieldwork — Bridge Test (Milestone 2)</h1>
-  <p>Click the button to publish a hardcoded litter-survey web map via the Power Automate bridge.</p>
+  <h1>MapMaker Fieldwork — Upload your data</h1>
+  <p>Drop a CSV with latitude and longitude columns to publish a map in MapMaker.</p>
 
   <p>
-    <button id="publishBtn">Publish hardcoded sample</button>
+    <button id="sampleBtn">Try a sample</button>
   </p>
 
-  <div id="status"></div>
-  <div id="result"></div>
+  <div id="dropZone" style="border: 2px dashed #888; padding: 40px; text-align: center; cursor: pointer;">
+    <p><strong>Drop a CSV here</strong></p>
+    <p>or</p>
+    <p><button id="browseBtn">Browse files</button></p>
+    <input type="file" id="fileInput" accept=".csv" style="display: none;">
+  </div>
+
+  <div id="status" style="margin-top: 20px;"></div>
+  <div id="result" style="margin-top: 20px;"></div>
 
   <script>
     // -----------------------------------------------------------------------
-    // Bridge URL — this is the Power Automate flow trigger.
-    // Treat it as a secret. If this repo is public, store the URL in a private
-    // mechanism instead (e.g. a runtime config injected at build time).
-    // For now, paste it directly here for the demo.
+    // Configuration
     // -----------------------------------------------------------------------
-    const BRIDGE_URL = "https://68c61fd12475ebdd804374cf052e0d.0e.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/dfe3048cccf84ed78ff9cd1e573d49f1/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=CKzxOsV_xJPL7sde92ypqb2dOIQ97FYyE8tsqRn0f9k";
+    const BRIDGE_URL = "PASTE_YOUR_FLOW_URL_HERE";
+
+    const NATGEO_BASEMAP = {
+      title: "National Geographic Style",
+      baseMapLayers: [
+        { id: "World_Hillshade", title: "World Hillshade", url: "https://services.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer", layerType: "ArcGISTiledMapServiceLayer", itemId: "1b243539f4514b6ba35e7d995890db1d", visibility: true, opacity: 1 },
+        { id: "NatGeoStyleBase", title: "National Geographic Style Base", url: "https://tiles.arcgis.com/tiles/P3ePLMYs2RVChkJx/arcgis/rest/services/NatGeoStyleBase/MapServer", layerType: "ArcGISTiledMapServiceLayer", itemId: "f9a070ff745b4d368b312eb647c53a4e", visibility: true, opacity: 1 },
+        { id: "NatGeoNoLabel", title: "National Geographic Style (no label)", styleUrl: "https://www.arcgis.com/sharing/rest/content/items/be90e1f3c0164cd0adc7920e1679c65f/resources/styles/root.json", itemId: "be90e1f3c0164cd0adc7920e1679c65f", layerType: "VectorTileLayer" }
+      ]
+    };
+
+    // ColorBrewer Set2 — colorblind-friendly categorical palette
+    const PALETTE = [
+      [102, 194, 165, 255], [252, 141,  98, 255], [141, 160, 203, 255],
+      [231, 138, 195, 255], [166, 216,  84, 255], [255, 217,  47, 255],
+      [229, 196, 148, 255], [179, 179, 179, 255]
+    ];
+
+    const NUMERIC_TYPES = new Set(["esriFieldTypeInteger", "esriFieldTypeDouble", "esriFieldTypeSmallInteger"]);
+    const STRING_TYPES = new Set(["esriFieldTypeString"]);
+    const COORD_NAMES = new Set(["latitude", "longitude", "lat", "lon", "lng", "x", "y"]);
+    const OID_NAMES = new Set(["ObjectId", "OBJECTID", "FID"]);
+
+    const ANALYZE_URL = "https://www.arcgis.com/sharing/rest/content/features/analyze";
+    const GENERATE_URL = "https://www.arcgis.com/sharing/rest/content/features/generate";
 
     // -----------------------------------------------------------------------
-    // Hardcoded payload — same shape we tested with test_bridge.py.
-    // This is a minimal litter-survey web map JSON. In M3 we'll replace this
-    // with output from real CSV parsing.
+    // Sample CSV (for the "Try a sample" button)
     // -----------------------------------------------------------------------
-    const HARDCODED_PAYLOAD = {
-      title: "Canvas M2 Test - Litter Survey",
-      snippet: "Published from minimal canvas (Milestone 2)",
-      tags: "mapmaker, fieldwork, poc, canvas-m2",
-      webMapJson: {
-        operationalLayers: [{
-          id: "fieldwork_m2",
-          title: "M2 Litter Survey",
-          layerType: "ArcGISFeatureLayer",
-          visibility: true,
-          opacity: 1,
-          showLegend: true,
-          popupInfo: {
-            title: "Composition breakdown",
-            fieldInfos: [
-              { fieldName: "Fast_Food_wrappers", label: "Fast Food wrappers", visible: true },
-              { fieldName: "Plastic_bottles", label: "Plastic bottles", visible: true },
-              { fieldName: "Cans", label: "Cans", visible: true },
-              { fieldName: "Paper_waste", label: "Paper waste", visible: true },
-              { fieldName: "Glass_bottles", label: "Glass bottles", visible: true },
-              { fieldName: "Other_plastic_waste", label: "Other plastic waste", visible: true }
-            ]
-          },
-          featureCollection: {
-            showLegend: true,
-            layers: [{
-              layerDefinition: {
-                geometryType: "esriGeometryPoint",
-                objectIdField: "ObjectId",
-                fields: [
-                  { name: "Fast_Food_wrappers", type: "esriFieldTypeInteger", alias: "Fast Food wrappers" },
-                  { name: "Plastic_bottles", type: "esriFieldTypeInteger", alias: "Plastic bottles" },
-                  { name: "Cans", type: "esriFieldTypeInteger", alias: "Cans" },
-                  { name: "Paper_waste", type: "esriFieldTypeInteger", alias: "Paper waste" },
-                  { name: "Glass_bottles", type: "esriFieldTypeInteger", alias: "Glass bottles" },
-                  { name: "Other_plastic_waste", type: "esriFieldTypeInteger", alias: "Other plastic waste" },
-                  { name: "Longitude", type: "esriFieldTypeDouble", alias: "Longitude" },
-                  { name: "Latitude", type: "esriFieldTypeDouble", alias: "Latitude" },
-                  { name: "ObjectId", type: "esriFieldTypeOID", alias: "ObjectId" }
-                ],
-                drawingInfo: {
-                  renderer: {
-                    type: "pieChart",
-                    attributes: [
-                      { field: "Fast_Food_wrappers", color: [102, 194, 165, 255], label: "Fast Food wrappers" },
-                      { field: "Plastic_bottles", color: [252, 141, 98, 255], label: "Plastic bottles" },
-                      { field: "Cans", color: [141, 160, 203, 255], label: "Cans" },
-                      { field: "Paper_waste", color: [231, 138, 195, 255], label: "Paper waste" },
-                      { field: "Glass_bottles", color: [166, 216, 84, 255], label: "Glass bottles" },
-                      { field: "Other_plastic_waste", color: [255, 217, 47, 255], label: "Other plastic waste" }
-                    ],
-                    size: 24,
-                    holePercentage: 0.4,
-                    outline: { color: [255, 255, 255, 255], width: 0.5, type: "esriSLS", style: "esriSLSSolid" }
-                  }
-                },
-                showLegend: true
-              },
-              featureSet: {
-                geometryType: "esriGeometryPoint",
-                features: [
-                  { attributes: { Fast_Food_wrappers: 10, Plastic_bottles: 4, Cans: 2, Paper_waste: 12, Glass_bottles: 2, Other_plastic_waste: 18, Longitude: -117.1656103, Latitude: 32.71144003, ObjectId: 1 }, geometry: { x: -13042816.07, y: 3857064.79, spatialReference: { wkid: 102100, latestWkid: 3857 } } },
-                  { attributes: { Fast_Food_wrappers: 10, Plastic_bottles: 18, Cans: 4, Paper_waste: 1, Glass_bottles: 12, Other_plastic_waste: 3, Longitude: -117.162681, Latitude: 32.709328, ObjectId: 2 }, geometry: { x: -13042489.99, y: 3856785.37, spatialReference: { wkid: 102100, latestWkid: 3857 } } },
-                  { attributes: { Fast_Food_wrappers: 7, Plastic_bottles: 17, Cans: 18, Paper_waste: 23, Glass_bottles: 1, Other_plastic_waste: 8, Longitude: -117.160128, Latitude: 32.710438, ObjectId: 3 }, geometry: { x: -13042205.79, y: 3856932.22, spatialReference: { wkid: 102100, latestWkid: 3857 } } },
-                  { attributes: { Fast_Food_wrappers: 18, Plastic_bottles: 1, Cans: 2, Paper_waste: 5, Glass_bottles: 26, Other_plastic_waste: 3, Longitude: -117.159291, Latitude: 32.711459, ObjectId: 4 }, geometry: { x: -13042112.62, y: 3857067.30, spatialReference: { wkid: 102100, latestWkid: 3857 } } },
-                  { attributes: { Fast_Food_wrappers: 8, Plastic_bottles: 9, Cans: 7, Paper_waste: 9, Glass_bottles: 1, Other_plastic_waste: 10, Longitude: -117.1628846, Latitude: 32.711413, ObjectId: 5 }, geometry: { x: -13042512.65, y: 3857061.21, spatialReference: { wkid: 102100, latestWkid: 3857 } } }
-                ]
-              },
-              popupInfo: {
-                title: "Composition breakdown",
-                fieldInfos: [
-                  { fieldName: "Fast_Food_wrappers", label: "Fast Food wrappers", visible: true },
-                  { fieldName: "Plastic_bottles", label: "Plastic bottles", visible: true },
-                  { fieldName: "Cans", label: "Cans", visible: true },
-                  { fieldName: "Paper_waste", label: "Paper waste", visible: true },
-                  { fieldName: "Glass_bottles", label: "Glass bottles", visible: true },
-                  { fieldName: "Other_plastic_waste", label: "Other plastic waste", visible: true }
-                ]
-              },
-              showLegend: true
-            }]
-          }
-        }],
-        baseMap: {
-          baseMapLayers: [
-            { id: "World_Hillshade", title: "World Hillshade", url: "https://services.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer", layerType: "ArcGISTiledMapServiceLayer", itemId: "1b243539f4514b6ba35e7d995890db1d", visibility: true, opacity: 1 },
-            { id: "NatGeoStyleBase", title: "National Geographic Style Base", url: "https://tiles.arcgis.com/tiles/P3ePLMYs2RVChkJx/arcgis/rest/services/NatGeoStyleBase/MapServer", layerType: "ArcGISTiledMapServiceLayer", itemId: "f9a070ff745b4d368b312eb647c53a4e", visibility: true, opacity: 1 },
-            { id: "NatGeoNoLabel", title: "National Geographic Style (no label)", styleUrl: "https://www.arcgis.com/sharing/rest/content/items/be90e1f3c0164cd0adc7920e1679c65f/resources/styles/root.json", itemId: "be90e1f3c0164cd0adc7920e1679c65f", layerType: "VectorTileLayer" }
-          ],
-          title: "National Geographic Style"
-        },
-        spatialReference: { wkid: 102100, latestWkid: 3857 },
-        initialState: {
-          viewpoint: {
-            targetGeometry: {
-              xmin: -13042978.86, ymin: 3856537.76, xmax: -13041839.36, ymax: 3857328.64,
-              spatialReference: { wkid: 102100, latestWkid: 3857 }
-            }
-          }
-        },
-        timeZone: "system",
-        version: "2.33",
-        authoringApp: "MapMakerFieldworkPOC-Canvas",
-        authoringAppVersion: "0.1-m2"
-      }
-    };
+    const SAMPLE_CSV = `Species,DBH_cm,Longitude,Latitude
+Coast Live Oak,45,-117.1656,32.7114
+Eucalyptus,80,-117.1626,32.7093
+Jacaranda,30,-117.1601,32.7104
+Palm,25,-117.1592,32.7114
+Coast Live Oak,55,-117.1628,32.7114
+Eucalyptus,90,-117.1601,32.7083
+Jacaranda,35,-117.1610,32.7125
+Palm,20,-117.1610,32.7094
+Coast Live Oak,60,-117.1583,32.7083
+Eucalyptus,75,-117.1620,32.7104
+Magnolia,40,-117.1638,32.7104
+Palm,28,-117.1583,32.7104
+Coast Live Oak,50,-117.1638,32.7125
+Coral Tree,35,-117.1591,32.7125
+Eucalyptus,85,-117.1610,32.7114`;
 
     // -----------------------------------------------------------------------
     // UI helpers
     // -----------------------------------------------------------------------
     const statusEl = document.getElementById("status");
     const resultEl = document.getElementById("result");
-    const btn = document.getElementById("publishBtn");
+    const dropZone = document.getElementById("dropZone");
+    const fileInput = document.getElementById("fileInput");
+    const browseBtn = document.getElementById("browseBtn");
+    const sampleBtn = document.getElementById("sampleBtn");
 
     function setStatus(text) {
-      statusEl.textContent = text;
+      statusEl.innerHTML = text ? `<p>${text}</p>` : "";
     }
 
     function showResult(html) {
       resultEl.innerHTML = html;
     }
 
+    function showError(message) {
+      setStatus("");
+      showResult(`<p style="color: crimson;"><strong>Error:</strong> ${message}</p>`);
+      sampleBtn.disabled = false;
+      browseBtn.disabled = false;
+    }
+
     // -----------------------------------------------------------------------
-    // Publish handler
+    // AGOL: analyze + generate (anonymous)
     // -----------------------------------------------------------------------
-    btn.addEventListener("click", async () => {
-      btn.disabled = true;
-      setStatus("Publishing your map...");
+    async function analyzeCSV(csvBlob) {
+      const fd = new FormData();
+      fd.append("f", "json");
+      fd.append("fileType", "csv");
+      fd.append("analyzeParameters", JSON.stringify({ enableGlobalGeocoding: false }));
+      fd.append("file", csvBlob, "upload.csv");
+
+      const r = await fetch(ANALYZE_URL, { method: "POST", body: fd });
+      if (!r.ok) throw new Error(`Analyze HTTP ${r.status}`);
+      const data = await r.json();
+      if (data.error) throw new Error(`AGOL analyze: ${data.error.message || JSON.stringify(data.error)}`);
+      return data.publishParameters;
+    }
+
+    async function generateFeatures(csvBlob, publishParameters) {
+      const fd = new FormData();
+      fd.append("f", "json");
+      fd.append("fileType", "csv");
+      fd.append("publishParameters", JSON.stringify(publishParameters));
+      fd.append("file", csvBlob, "upload.csv");
+
+      const r = await fetch(GENERATE_URL, { method: "POST", body: fd });
+      if (!r.ok) throw new Error(`Generate HTTP ${r.status}`);
+      const data = await r.json();
+      if (data.error) throw new Error(`AGOL generate: ${data.error.message || JSON.stringify(data.error)}`);
+      return data.featureCollection.layers[0];
+    }
+
+    // -----------------------------------------------------------------------
+    // Renderer detection — picks one of four strategies
+    // -----------------------------------------------------------------------
+    function classifyColumns(fields, features) {
+      const numeric = [];
+      const categorical = [];
+      for (const f of fields) {
+        if (OID_NAMES.has(f.name)) continue;
+        if (COORD_NAMES.has(f.name.toLowerCase())) continue;
+        if (NUMERIC_TYPES.has(f.type)) {
+          numeric.push(f.name);
+        } else if (STRING_TYPES.has(f.type)) {
+          const unique = new Set();
+          for (const feat of features) {
+            const v = feat.attributes[f.name];
+            if (v !== null && v !== undefined && v !== "") unique.add(v);
+          }
+          if (unique.size >= 2 && unique.size <= 12) categorical.push(f.name);
+        }
+      }
+      return { numeric, categorical };
+    }
+
+    function pickStrategy(numeric, categorical) {
+      if (numeric.length >= 3) return "pie_chart";
+      if (categorical.length >= 1 && numeric.length >= 1) return "unique_with_size";
+      if (categorical.length >= 1) return "unique_values";
+      if (numeric.length >= 1) return "proportional";
+      return "simple";
+    }
+
+    // -----------------------------------------------------------------------
+    // Renderer builders
+    // -----------------------------------------------------------------------
+    function buildPieChartRenderer(numericFields) {
+      return {
+        type: "pieChart",
+        attributes: numericFields.slice(0, 8).map((fld, i) => ({
+          field: fld,
+          color: PALETTE[i % PALETTE.length],
+          label: fld.replace(/_/g, " ")
+        })),
+        size: 24,
+        holePercentage: 0.4,
+        outline: { color: [255, 255, 255, 255], width: 0.5, type: "esriSLS", style: "esriSLSSolid" }
+      };
+    }
+
+    function buildProportionalRenderer(field, features) {
+      const values = features.map(f => f.attributes[field]).filter(v => v !== null && !isNaN(v));
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      return {
+        type: "simple",
+        symbol: {
+          type: "esriSMS", style: "esriSMSCircle",
+          color: [102, 194, 165, 200],
+          size: 12,
+          outline: { color: [255, 255, 255, 255], width: 1 }
+        },
+        visualVariables: [{
+          type: "sizeInfo",
+          field: field,
+          minSize: 8, maxSize: 40,
+          minDataValue: min, maxDataValue: max
+        }],
+        label: field.replace(/_/g, " ")
+      };
+    }
+
+    function buildUniqueValueRenderer(field, features) {
+      const unique = new Set();
+      for (const f of features) {
+        const v = f.attributes[field];
+        if (v !== null && v !== undefined && v !== "") unique.add(v);
+      }
+      const values = Array.from(unique).sort();
+      return {
+        type: "uniqueValue",
+        field1: field,
+        defaultSymbol: {
+          type: "esriSMS", style: "esriSMSCircle",
+          color: [179, 179, 179, 200], size: 12,
+          outline: { color: [255, 255, 255, 255], width: 1 }
+        },
+        defaultLabel: "Other",
+        uniqueValueInfos: values.map((val, i) => ({
+          value: val,
+          label: String(val),
+          symbol: {
+            type: "esriSMS", style: "esriSMSCircle",
+            color: PALETTE[i % PALETTE.length],
+            size: 12,
+            outline: { color: [255, 255, 255, 255], width: 1 }
+          }
+        }))
+      };
+    }
+
+    function buildUniqueWithSizeRenderer(catField, numField, features) {
+      const renderer = buildUniqueValueRenderer(catField, features);
+      const values = features.map(f => f.attributes[numField]).filter(v => v !== null && !isNaN(v));
+      renderer.visualVariables = [{
+        type: "sizeInfo",
+        field: numField,
+        minSize: 8, maxSize: 40,
+        minDataValue: Math.min(...values),
+        maxDataValue: Math.max(...values)
+      }];
+      return renderer;
+    }
+
+    // -----------------------------------------------------------------------
+    // Build the operational layer
+    // -----------------------------------------------------------------------
+    function buildOperationalLayer(fcLayer, fields, features, strategy, numeric, categorical, baseTitle) {
+      let renderer, popupTitle;
+      switch (strategy) {
+        case "pie_chart":
+          renderer = buildPieChartRenderer(numeric);
+          popupTitle = "Composition breakdown";
+          break;
+        case "proportional":
+          renderer = buildProportionalRenderer(numeric[0], features);
+          popupTitle = `{${numeric[0]}}`;
+          break;
+        case "unique_values":
+          renderer = buildUniqueValueRenderer(categorical[0], features);
+          popupTitle = `{${categorical[0]}}`;
+          break;
+        case "unique_with_size":
+          renderer = buildUniqueWithSizeRenderer(categorical[0], numeric[0], features);
+          popupTitle = `{${categorical[0]}} – {${numeric[0]}}`;
+          break;
+        default:
+          renderer = {
+            type: "simple",
+            symbol: {
+              type: "esriSMS", style: "esriSMSCircle",
+              color: [102, 194, 165, 200], size: 10,
+              outline: { color: [255, 255, 255, 255], width: 1 }
+            }
+          };
+          popupTitle = "Point";
+      }
+
+      const popupFieldInfos = fields
+        .filter(f => !OID_NAMES.has(f.name) && !COORD_NAMES.has(f.name.toLowerCase()))
+        .map(f => ({ fieldName: f.name, label: f.name.replace(/_/g, " "), visible: true }));
+
+      const popupInfo = { title: popupTitle, fieldInfos: popupFieldInfos };
+
+      const layerDef = {
+        ...fcLayer.layerDefinition,
+        drawingInfo: { renderer },
+        showLegend: true
+      };
+
+      return {
+        id: `fieldwork_${Date.now()}`,
+        title: baseTitle,
+        layerType: "ArcGISFeatureLayer",
+        visibility: true,
+        opacity: 1,
+        showLegend: true,
+        popupInfo,
+        featureCollection: {
+          showLegend: true,
+          layers: [{
+            layerDefinition: layerDef,
+            featureSet: fcLayer.featureSet,
+            popupInfo,
+            showLegend: true
+          }]
+        }
+      };
+    }
+
+    // -----------------------------------------------------------------------
+    // Compute extent from features
+    // -----------------------------------------------------------------------
+    function computeExtent(features) {
+      const xs = features.map(f => f.geometry.x);
+      const ys = features.map(f => f.geometry.y);
+      const minX = Math.min(...xs), maxX = Math.max(...xs);
+      const minY = Math.min(...ys), maxY = Math.max(...ys);
+      const padX = Math.max((maxX - minX) * 0.2, 100);
+      const padY = Math.max((maxY - minY) * 0.2, 100);
+      return {
+        xmin: minX - padX, ymin: minY - padY,
+        xmax: maxX + padX, ymax: maxY + padY,
+        spatialReference: { wkid: 102100, latestWkid: 3857 }
+      };
+    }
+
+    // -----------------------------------------------------------------------
+    // Build the complete web map JSON
+    // -----------------------------------------------------------------------
+    function buildWebMapJson(operationalLayer, extent) {
+      return {
+        operationalLayers: [operationalLayer],
+        baseMap: NATGEO_BASEMAP,
+        spatialReference: { wkid: 102100, latestWkid: 3857 },
+        initialState: { viewpoint: { targetGeometry: extent } },
+        timeZone: "system",
+        version: "2.33",
+        authoringApp: "MapMakerFieldworkPOC-Canvas",
+        authoringAppVersion: "0.3-m3"
+      };
+    }
+
+    // -----------------------------------------------------------------------
+    // Send to bridge
+    // -----------------------------------------------------------------------
+    async function publishViaBridge(title, snippet, tags, webMapJson) {
+      const r = await fetch(BRIDGE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, snippet, tags, webMapJson })
+      });
+      if (!r.ok) throw new Error(`Bridge HTTP ${r.status}`);
+      const data = await r.json();
+      if (!data.mapMakerUrl) throw new Error("Bridge response missing mapMakerUrl");
+      return data;
+    }
+
+    // -----------------------------------------------------------------------
+    // Validate (Layer 2 — basic data-shape checks)
+    // -----------------------------------------------------------------------
+    function validateFeatures(features) {
+      if (features.length < 2) {
+        throw new Error("Your file needs at least 2 rows of data with coordinates.");
+      }
+      const withGeom = features.filter(f => f.geometry && typeof f.geometry.x === "number");
+      if (withGeom.length < features.length * 0.5) {
+        throw new Error("Most rows don't have valid coordinates. Make sure your CSV has columns named latitude/longitude (or lat/lon) with numeric values.");
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // Main pipeline — turn a CSV blob into a published map
+    // -----------------------------------------------------------------------
+    async function processCSV(csvBlob, displayName) {
+      sampleBtn.disabled = true;
+      browseBtn.disabled = true;
       showResult("");
 
       try {
-        const response = await fetch(BRIDGE_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(HARDCODED_PAYLOAD)
-        });
+        setStatus("Reading your file…");
+        await new Promise(r => setTimeout(r, 100));
 
-        if (!response.ok) {
-          throw new Error(`Bridge returned HTTP ${response.status}`);
-        }
+        setStatus("Asking ArcGIS to parse your data…");
+        const publishParams = await analyzeCSV(csvBlob);
 
-        const data = await response.json();
-        if (!data.mapMakerUrl) {
-          throw new Error("Response missing mapMakerUrl field");
-        }
+        setStatus("Building features from your data…");
+        const fcLayer = await generateFeatures(csvBlob, publishParams);
+        const features = fcLayer.featureSet.features;
+        const fields = fcLayer.layerDefinition.fields;
 
-        setStatus("Done. Click below to open your map in MapMaker.");
+        validateFeatures(features);
+
+        const { numeric, categorical } = classifyColumns(fields, features);
+        const strategy = pickStrategy(numeric, categorical);
+
+        setStatus(`Building map (${strategy.replace(/_/g, " ")})…`);
+        const baseTitle = displayName.replace(/\.csv$/i, "").replace(/_/g, " ");
+        const opLayer = buildOperationalLayer(fcLayer, fields, features, strategy, numeric, categorical, baseTitle);
+        const extent = computeExtent(features);
+        const webMapJson = buildWebMapJson(opLayer, extent);
+
+        setStatus("Publishing your map…");
+        const result = await publishViaBridge(
+          baseTitle,
+          `Fieldwork data: ${features.length} points (${strategy})`,
+          `mapmaker, fieldwork, ${strategy}`,
+          webMapJson
+        );
+
+        setStatus("");
         showResult(`
-          <p><strong>Map published:</strong></p>
-          <p><a href="${data.mapMakerUrl}" target="_blank" rel="noopener">Open in MapMaker</a></p>
-          <p><small>Item ID: ${data.itemId}</small></p>
+          <p><strong>Your map is ready.</strong> ${features.length} points published.</p>
+          <p><a href="${result.mapMakerUrl}" target="_blank" rel="noopener" style="font-size: 1.2em;">Open in MapMaker</a></p>
+          <p><small>Item ID: ${result.itemId}</small></p>
         `);
       } catch (err) {
-        setStatus("Something went wrong.");
-        showResult(`<p style="color: crimson;">Error: ${err.message}</p>`);
+        showError(err.message);
         console.error(err);
       } finally {
-        btn.disabled = false;
+        sampleBtn.disabled = false;
+        browseBtn.disabled = false;
       }
+    }
+
+    // -----------------------------------------------------------------------
+    // Wire up the UI
+    // -----------------------------------------------------------------------
+    browseBtn.addEventListener("click", () => fileInput.click());
+
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files[0];
+      if (file) processCSV(file, file.name);
+      fileInput.value = "";
+    });
+
+    dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = "#0078d4";
+    });
+
+    dropZone.addEventListener("dragleave", () => {
+      dropZone.style.borderColor = "#888";
+    });
+
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = "#888";
+      const file = e.dataTransfer.files[0];
+      if (!file) return;
+      if (!file.name.toLowerCase().endsWith(".csv")) {
+        showError("This tool only accepts CSV files. Please save your spreadsheet as CSV first.");
+        return;
+      }
+      processCSV(file, file.name);
+    });
+
+    sampleBtn.addEventListener("click", () => {
+      const blob = new Blob([SAMPLE_CSV], { type: "text/csv" });
+      processCSV(blob, "Sample Tree Survey.csv");
     });
   </script>
 </body>
