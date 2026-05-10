@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MapMaker Fieldwork — Bridge Test</title>
+</head>
+<body>
+  <h1>MapMaker Fieldwork — Bridge Test (Milestone 2)</h1>
+  <p>Click the button to publish a hardcoded litter-survey web map via the Power Automate bridge.</p>
+
+  <p>
+    <button id="publishBtn">Publish hardcoded sample</button>
+  </p>
+
+  <div id="status"></div>
+  <div id="result"></div>
+
+  <script>
+    // -----------------------------------------------------------------------
+    // Bridge URL — this is the Power Automate flow trigger.
+    // Treat it as a secret. If this repo is public, store the URL in a private
+    // mechanism instead (e.g. a runtime config injected at build time).
+    // For now, paste it directly here for the demo.
+    // -----------------------------------------------------------------------
+    const BRIDGE_URL = "https://68c61fd12475ebdd804374cf052e0d.0e.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/dfe3048cccf84ed78ff9cd1e573d49f1/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=CKzxOsV_xJPL7sde92ypqb2dOIQ97FYyE8tsqRn0f9k";
+
+    // -----------------------------------------------------------------------
+    // Hardcoded payload — same shape we tested with test_bridge.py.
+    // This is a minimal litter-survey web map JSON. In M3 we'll replace this
+    // with output from real CSV parsing.
+    // -----------------------------------------------------------------------
+    const HARDCODED_PAYLOAD = {
+      title: "Canvas M2 Test - Litter Survey",
+      snippet: "Published from minimal canvas (Milestone 2)",
+      tags: "mapmaker, fieldwork, poc, canvas-m2",
+      webMapJson: {
+        operationalLayers: [{
+          id: "fieldwork_m2",
+          title: "M2 Litter Survey",
+          layerType: "ArcGISFeatureLayer",
+          visibility: true,
+          opacity: 1,
+          showLegend: true,
+          popupInfo: {
+            title: "Composition breakdown",
+            fieldInfos: [
+              { fieldName: "Fast_Food_wrappers", label: "Fast Food wrappers", visible: true },
+              { fieldName: "Plastic_bottles", label: "Plastic bottles", visible: true },
+              { fieldName: "Cans", label: "Cans", visible: true },
+              { fieldName: "Paper_waste", label: "Paper waste", visible: true },
+              { fieldName: "Glass_bottles", label: "Glass bottles", visible: true },
+              { fieldName: "Other_plastic_waste", label: "Other plastic waste", visible: true }
+            ]
+          },
+          featureCollection: {
+            showLegend: true,
+            layers: [{
+              layerDefinition: {
+                geometryType: "esriGeometryPoint",
+                objectIdField: "ObjectId",
+                fields: [
+                  { name: "Fast_Food_wrappers", type: "esriFieldTypeInteger", alias: "Fast Food wrappers" },
+                  { name: "Plastic_bottles", type: "esriFieldTypeInteger", alias: "Plastic bottles" },
+                  { name: "Cans", type: "esriFieldTypeInteger", alias: "Cans" },
+                  { name: "Paper_waste", type: "esriFieldTypeInteger", alias: "Paper waste" },
+                  { name: "Glass_bottles", type: "esriFieldTypeInteger", alias: "Glass bottles" },
+                  { name: "Other_plastic_waste", type: "esriFieldTypeInteger", alias: "Other plastic waste" },
+                  { name: "Longitude", type: "esriFieldTypeDouble", alias: "Longitude" },
+                  { name: "Latitude", type: "esriFieldTypeDouble", alias: "Latitude" },
+                  { name: "ObjectId", type: "esriFieldTypeOID", alias: "ObjectId" }
+                ],
+                drawingInfo: {
+                  renderer: {
+                    type: "pieChart",
+                    attributes: [
+                      { field: "Fast_Food_wrappers", color: [102, 194, 165, 255], label: "Fast Food wrappers" },
+                      { field: "Plastic_bottles", color: [252, 141, 98, 255], label: "Plastic bottles" },
+                      { field: "Cans", color: [141, 160, 203, 255], label: "Cans" },
+                      { field: "Paper_waste", color: [231, 138, 195, 255], label: "Paper waste" },
+                      { field: "Glass_bottles", color: [166, 216, 84, 255], label: "Glass bottles" },
+                      { field: "Other_plastic_waste", color: [255, 217, 47, 255], label: "Other plastic waste" }
+                    ],
+                    size: 24,
+                    holePercentage: 0.4,
+                    outline: { color: [255, 255, 255, 255], width: 0.5, type: "esriSLS", style: "esriSLSSolid" }
+                  }
+                },
+                showLegend: true
+              },
+              featureSet: {
+                geometryType: "esriGeometryPoint",
+                features: [
+                  { attributes: { Fast_Food_wrappers: 10, Plastic_bottles: 4, Cans: 2, Paper_waste: 12, Glass_bottles: 2, Other_plastic_waste: 18, Longitude: -117.1656103, Latitude: 32.71144003, ObjectId: 1 }, geometry: { x: -13042816.07, y: 3857064.79, spatialReference: { wkid: 102100, latestWkid: 3857 } } },
+                  { attributes: { Fast_Food_wrappers: 10, Plastic_bottles: 18, Cans: 4, Paper_waste: 1, Glass_bottles: 12, Other_plastic_waste: 3, Longitude: -117.162681, Latitude: 32.709328, ObjectId: 2 }, geometry: { x: -13042489.99, y: 3856785.37, spatialReference: { wkid: 102100, latestWkid: 3857 } } },
+                  { attributes: { Fast_Food_wrappers: 7, Plastic_bottles: 17, Cans: 18, Paper_waste: 23, Glass_bottles: 1, Other_plastic_waste: 8, Longitude: -117.160128, Latitude: 32.710438, ObjectId: 3 }, geometry: { x: -13042205.79, y: 3856932.22, spatialReference: { wkid: 102100, latestWkid: 3857 } } },
+                  { attributes: { Fast_Food_wrappers: 18, Plastic_bottles: 1, Cans: 2, Paper_waste: 5, Glass_bottles: 26, Other_plastic_waste: 3, Longitude: -117.159291, Latitude: 32.711459, ObjectId: 4 }, geometry: { x: -13042112.62, y: 3857067.30, spatialReference: { wkid: 102100, latestWkid: 3857 } } },
+                  { attributes: { Fast_Food_wrappers: 8, Plastic_bottles: 9, Cans: 7, Paper_waste: 9, Glass_bottles: 1, Other_plastic_waste: 10, Longitude: -117.1628846, Latitude: 32.711413, ObjectId: 5 }, geometry: { x: -13042512.65, y: 3857061.21, spatialReference: { wkid: 102100, latestWkid: 3857 } } }
+                ]
+              },
+              popupInfo: {
+                title: "Composition breakdown",
+                fieldInfos: [
+                  { fieldName: "Fast_Food_wrappers", label: "Fast Food wrappers", visible: true },
+                  { fieldName: "Plastic_bottles", label: "Plastic bottles", visible: true },
+                  { fieldName: "Cans", label: "Cans", visible: true },
+                  { fieldName: "Paper_waste", label: "Paper waste", visible: true },
+                  { fieldName: "Glass_bottles", label: "Glass bottles", visible: true },
+                  { fieldName: "Other_plastic_waste", label: "Other plastic waste", visible: true }
+                ]
+              },
+              showLegend: true
+            }]
+          }
+        }],
+        baseMap: {
+          baseMapLayers: [
+            { id: "World_Hillshade", title: "World Hillshade", url: "https://services.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer", layerType: "ArcGISTiledMapServiceLayer", itemId: "1b243539f4514b6ba35e7d995890db1d", visibility: true, opacity: 1 },
+            { id: "NatGeoStyleBase", title: "National Geographic Style Base", url: "https://tiles.arcgis.com/tiles/P3ePLMYs2RVChkJx/arcgis/rest/services/NatGeoStyleBase/MapServer", layerType: "ArcGISTiledMapServiceLayer", itemId: "f9a070ff745b4d368b312eb647c53a4e", visibility: true, opacity: 1 },
+            { id: "NatGeoNoLabel", title: "National Geographic Style (no label)", styleUrl: "https://www.arcgis.com/sharing/rest/content/items/be90e1f3c0164cd0adc7920e1679c65f/resources/styles/root.json", itemId: "be90e1f3c0164cd0adc7920e1679c65f", layerType: "VectorTileLayer" }
+          ],
+          title: "National Geographic Style"
+        },
+        spatialReference: { wkid: 102100, latestWkid: 3857 },
+        initialState: {
+          viewpoint: {
+            targetGeometry: {
+              xmin: -13042978.86, ymin: 3856537.76, xmax: -13041839.36, ymax: 3857328.64,
+              spatialReference: { wkid: 102100, latestWkid: 3857 }
+            }
+          }
+        },
+        timeZone: "system",
+        version: "2.33",
+        authoringApp: "MapMakerFieldworkPOC-Canvas",
+        authoringAppVersion: "0.1-m2"
+      }
+    };
+
+    // -----------------------------------------------------------------------
+    // UI helpers
+    // -----------------------------------------------------------------------
+    const statusEl = document.getElementById("status");
+    const resultEl = document.getElementById("result");
+    const btn = document.getElementById("publishBtn");
+
+    function setStatus(text) {
+      statusEl.textContent = text;
+    }
+
+    function showResult(html) {
+      resultEl.innerHTML = html;
+    }
+
+    // -----------------------------------------------------------------------
+    // Publish handler
+    // -----------------------------------------------------------------------
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      setStatus("Publishing your map...");
+      showResult("");
+
+      try {
+        const response = await fetch(BRIDGE_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(HARDCODED_PAYLOAD)
+        });
+
+        if (!response.ok) {
+          throw new Error(`Bridge returned HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (!data.mapMakerUrl) {
+          throw new Error("Response missing mapMakerUrl field");
+        }
+
+        setStatus("Done. Click below to open your map in MapMaker.");
+        showResult(`
+          <p><strong>Map published:</strong></p>
+          <p><a href="${data.mapMakerUrl}" target="_blank" rel="noopener">Open in MapMaker</a></p>
+          <p><small>Item ID: ${data.itemId}</small></p>
+        `);
+      } catch (err) {
+        setStatus("Something went wrong.");
+        showResult(`<p style="color: crimson;">Error: ${err.message}</p>`);
+        console.error(err);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
