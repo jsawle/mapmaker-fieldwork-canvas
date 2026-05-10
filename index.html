@@ -15,7 +15,6 @@
       min-height: 100vh;
     }
 
-    /* Header — NatGeo yellow band */
     .header {
       background: #000;
       border-bottom: 4px solid #FFCC00;
@@ -27,7 +26,6 @@
     .header-title { color: white; font-size: 20px; font-weight: 600; letter-spacing: 0.5px; }
     .header-sub { color: #FFCC00; font-size: 14px; margin-top: 2px; }
 
-    /* Main container */
     .container { max-width: 800px; margin: 32px auto; padding: 0 24px; }
 
     .card {
@@ -41,7 +39,6 @@
     h2 { font-size: 18px; margin-bottom: 8px; color: #1a1a1a; }
     .subtitle { color: #666; font-size: 14px; margin-bottom: 24px; }
 
-    /* Drop zone */
     .dropzone {
       border: 2px dashed #c4c4c4;
       border-radius: 8px;
@@ -55,11 +52,7 @@
       border-color: #FFCC00;
       background: #fffdf0;
     }
-    .dropzone-icon {
-      font-size: 40px;
-      margin-bottom: 12px;
-      opacity: 0.5;
-    }
+    .dropzone-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
     .dropzone-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
     .dropzone-hint { color: #888; font-size: 14px; margin-bottom: 16px; }
     .format-pill {
@@ -72,7 +65,6 @@
       margin: 0 4px;
     }
 
-    /* Buttons */
     .btn {
       background: #FFCC00;
       color: #000;
@@ -92,10 +84,7 @@
       border: 1px solid #c4c4c4;
     }
     .btn-secondary:hover { background: #f5f5f5; }
-    .btn-large {
-      padding: 14px 32px;
-      font-size: 16px;
-    }
+    .btn-large { padding: 14px 32px; font-size: 16px; }
     .btn-row {
       display: flex;
       gap: 12px;
@@ -103,7 +92,43 @@
       flex-wrap: wrap;
     }
 
-    /* Override panel */
+    .config-section { margin-bottom: 24px; }
+    .config-section h3 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #888;
+      margin-bottom: 12px;
+    }
+
+    .style-options {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .style-option {
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      padding: 14px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      background: white;
+      text-align: left;
+    }
+    .style-option:hover { border-color: #FFCC00; }
+    .style-option.selected {
+      border-color: #FFCC00;
+      background: #fffdf0;
+    }
+    .style-option.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .style-option.disabled:hover { border-color: #ddd; }
+    .style-option-icon { font-size: 22px; margin-bottom: 6px; }
+    .style-option-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+    .style-option-hint { font-size: 12px; color: #888; }
+
     .config-row {
       display: flex;
       align-items: center;
@@ -128,12 +153,20 @@
       cursor: pointer;
     }
     .config-summary {
-      color: #888;
+      color: #555;
       font-size: 13px;
-      margin-top: 4px;
+      padding: 12px;
+      background: #f7f8f4;
+      border-radius: 4px;
+      margin-top: 16px;
+    }
+    .auto-publish-banner {
+      color: #b78400;
+      font-size: 13px;
+      font-style: italic;
+      margin-top: 8px;
     }
 
-    /* Status / progress */
     .progress {
       display: flex;
       align-items: center;
@@ -153,7 +186,6 @@
     .progress-step-done { color: #888; font-size: 13px; padding: 2px 0 2px 32px; }
     .progress-step-done::before { content: "✓ "; color: #2a8f37; }
 
-    /* Result card */
     .result-card {
       background: linear-gradient(180deg, #FFCC00 0%, #f0bf00 100%);
       color: #000;
@@ -190,7 +222,6 @@
       font-family: monospace;
     }
 
-    /* Error */
     .error {
       background: #fff4f4;
       border-left: 4px solid #d33;
@@ -201,7 +232,6 @@
     }
     .error strong { display: block; margin-bottom: 4px; }
 
-    /* Hidden helper */
     .hidden { display: none !important; }
   </style>
 </head>
@@ -235,27 +265,23 @@
     </div>
   </div>
 
-  <!-- STAGE 2: Configure (override panel) -->
+  <!-- STAGE 2: Configure -->
   <div id="stage-configure" class="card hidden">
     <h2>Looks good. Here's how we'll map it.</h2>
-    <p class="subtitle" id="configureSubtitle">Found N points. Review the choices below or hit Publish.</p>
+    <p class="subtitle" id="configureSubtitle"></p>
 
-    <div class="config-row">
-      <div class="config-label"><span class="config-icon">🎨</span>Color points by</div>
-      <select id="colorBySelect" class="config-select"></select>
+    <div class="config-section">
+      <h3>Map style</h3>
+      <div class="style-options" id="styleOptions"></div>
     </div>
 
-    <div class="config-row">
-      <div class="config-label"><span class="config-icon">📏</span>Size points by</div>
-      <select id="sizeBySelect" class="config-select"></select>
-    </div>
-
-    <div class="config-row">
-      <div class="config-label"><span class="config-icon">🏷️</span>Label points with</div>
-      <select id="labelBySelect" class="config-select"></select>
+    <div class="config-section" id="fieldsSection">
+      <h3>Fields</h3>
+      <div id="fieldsContainer"></div>
     </div>
 
     <div class="config-summary" id="configSummary"></div>
+    <div class="auto-publish-banner hidden" id="autoPublishBanner">Auto-publishing in 2 seconds…</div>
 
     <div class="btn-row" style="margin-top: 24px;">
       <button id="publishBtn" class="btn btn-large">Publish to MapMaker</button>
@@ -267,7 +293,6 @@
   <div id="stage-publishing" class="card hidden">
     <h2>Publishing your map…</h2>
     <p class="subtitle">This usually takes about 5 seconds.</p>
-
     <div id="progressList"></div>
   </div>
 
@@ -284,7 +309,7 @@
     </div>
   </div>
 
-  <!-- Error display (shown inline) -->
+  <!-- Error -->
   <div id="errorBox" class="card hidden">
     <div class="error">
       <strong>Something went wrong</strong>
@@ -328,6 +353,58 @@
 
   const NONE_VALUE = "__none__";
 
+  // -----------------------------------------------------------------------
+  // Map style definitions — what each style needs
+  // -----------------------------------------------------------------------
+  const STYLES = [
+    {
+      id: "pie_chart",
+      name: "Pie charts",
+      icon: "🥧",
+      hint: "Show composition across 3+ numeric columns",
+      requires: { minNumeric: 3 },
+      fields: ["label"], // label optional
+    },
+    {
+      id: "categorical_size",
+      name: "Color & size",
+      icon: "🎨",
+      hint: "Color by group, size by a value",
+      requires: { minCategorical: 1, minNumeric: 1 },
+      fields: ["color", "size", "label"],
+    },
+    {
+      id: "categorical",
+      name: "Color by group",
+      icon: "🏷️",
+      hint: "Color points by a category",
+      requires: { minCategorical: 1 },
+      fields: ["color", "label"],
+    },
+    {
+      id: "graduated",
+      name: "Graduated size",
+      icon: "📏",
+      hint: "Size points by a numeric value",
+      requires: { minNumeric: 1 },
+      fields: ["size", "label"],
+    },
+    {
+      id: "simple",
+      name: "Simple points",
+      icon: "📍",
+      hint: "Just plot the points",
+      requires: {},
+      fields: ["label"],
+    },
+  ];
+
+  const FIELD_DEFS = {
+    color: { label: "Color points by", icon: "🎨", source: "categorical" },
+    size:  { label: "Size points by",  icon: "📏", source: "numeric" },
+    label: { label: "Label points with", icon: "🏷️", source: "categorical" },
+  };
+
   // Sample CSV
   const SAMPLE_CSV = `Species,DBH_cm,Longitude,Latitude
 Coast Live Oak,45,-117.1656,32.7114
@@ -357,19 +434,21 @@ Eucalyptus,85,-117.1610,32.7114`;
     fields: [],
     numeric: [],
     categorical: [],
-    autoPicks: { color: null, size: null, label: null },
+    style: null,
+    fieldChoices: { color: null, size: null, label: null },
     isSample: false,
+    autoPublishTimer: null,
   };
 
   // -----------------------------------------------------------------------
   // Stage management
   // -----------------------------------------------------------------------
   const stages = {
-    upload: document.getElementById("stage-upload"),
-    configure: document.getElementById("stage-configure"),
+    upload:     document.getElementById("stage-upload"),
+    configure:  document.getElementById("stage-configure"),
     publishing: document.getElementById("stage-publishing"),
-    result: document.getElementById("stage-result"),
-    error: document.getElementById("errorBox"),
+    result:     document.getElementById("stage-result"),
+    error:      document.getElementById("errorBox"),
   };
 
   function showStage(name) {
@@ -388,7 +467,6 @@ Eucalyptus,85,-117.1610,32.7114`;
     fd.append("fileType", "csv");
     fd.append("analyzeParameters", JSON.stringify({ enableGlobalGeocoding: false }));
     fd.append("file", csvBlob, "upload.csv");
-
     const r = await fetch(ANALYZE_URL, { method: "POST", body: fd });
     if (!r.ok) throw new Error(`AGOL analyze HTTP ${r.status}`);
     const data = await r.json();
@@ -402,7 +480,6 @@ Eucalyptus,85,-117.1610,32.7114`;
     fd.append("fileType", "csv");
     fd.append("publishParameters", JSON.stringify(publishParameters));
     fd.append("file", csvBlob, "upload.csv");
-
     const r = await fetch(GENERATE_URL, { method: "POST", body: fd });
     if (!r.ok) throw new Error(`AGOL generate HTTP ${r.status}`);
     const data = await r.json();
@@ -433,31 +510,32 @@ Eucalyptus,85,-117.1610,32.7114`;
     return { numeric, categorical };
   }
 
-  function pickAutoDefaults(numeric, categorical) {
-    return {
-      color: categorical[0] || null,
-      size: numeric[0] || null,
-      label: categorical[0] || null,
-    };
+  function isStyleAvailable(style, numeric, categorical) {
+    const req = style.requires;
+    if (req.minNumeric && numeric.length < req.minNumeric) return false;
+    if (req.minCategorical && categorical.length < req.minCategorical) return false;
+    return true;
+  }
+
+  function pickAutoStyle(numeric, categorical) {
+    // Order matters — try the richest visualization first
+    for (const style of STYLES) {
+      if (isStyleAvailable(style, numeric, categorical)) return style;
+    }
+    return STYLES[STYLES.length - 1]; // simple fallback
+  }
+
+  function pickAutoFields(style, numeric, categorical) {
+    const choices = { color: null, size: null, label: null };
+    if (style.fields.includes("color")) choices.color = categorical[0] || null;
+    if (style.fields.includes("size"))  choices.size  = numeric[0] || null;
+    if (style.fields.includes("label")) choices.label = categorical[0] || null;
+    return choices;
   }
 
   // -----------------------------------------------------------------------
   // Renderer building
   // -----------------------------------------------------------------------
-  function buildPieChartRenderer(numericFields) {
-    return {
-      type: "pieChart",
-      attributes: numericFields.slice(0, 8).map((fld, i) => ({
-        field: fld,
-        color: PALETTE[i % PALETTE.length],
-        label: fld.replace(/_/g, " ")
-      })),
-      size: 24,
-      holePercentage: 0.4,
-      outline: { color: [255, 255, 255, 255], width: 0.5, type: "esriSLS", style: "esriSLSSolid" }
-    };
-  }
-
   function buildSimpleSymbol(color, size) {
     return {
       type: "esriSMS", style: "esriSMSCircle",
@@ -471,37 +549,25 @@ Eucalyptus,85,-117.1610,32.7114`;
     const values = features.map(f => f.attributes[field]).filter(v => v !== null && !isNaN(v));
     if (!values.length) return null;
     return {
-      type: "sizeInfo",
-      field, minSize: 8, maxSize: 40,
+      type: "sizeInfo", field,
+      minSize: 8, maxSize: 40,
       minDataValue: Math.min(...values),
       maxDataValue: Math.max(...values)
     };
   }
 
-  function buildRenderer(colorField, sizeField, features) {
-    // No color, no size → simple
-    if (!colorField && !sizeField) {
-      return { type: "simple", symbol: buildSimpleSymbol(), label: "" };
-    }
-
-    // Size only → proportional
-    if (!colorField && sizeField) {
-      const sv = buildSizeVariable(sizeField, features);
-      const r = { type: "simple", symbol: buildSimpleSymbol(), label: sizeField.replace(/_/g, " ") };
-      if (sv) r.visualVariables = [sv];
-      return r;
-    }
-
-    // Color only → unique value
-    if (colorField && !sizeField) {
-      return buildUniqueRenderer(colorField, features);
-    }
-
-    // Both → unique with size
-    const r = buildUniqueRenderer(colorField, features);
-    const sv = buildSizeVariable(sizeField, features);
-    if (sv) r.visualVariables = [sv];
-    return r;
+  function buildPieChartRenderer(numericFields) {
+    return {
+      type: "pieChart",
+      attributes: numericFields.slice(0, 8).map((fld, i) => ({
+        field: fld,
+        color: PALETTE[i % PALETTE.length],
+        label: fld.replace(/_/g, " ")
+      })),
+      size: 24,
+      holePercentage: 0.4,
+      outline: { color: [255, 255, 255, 255], width: 0.5, type: "esriSLS", style: "esriSLSSolid" }
+    };
   }
 
   function buildUniqueRenderer(field, features) {
@@ -542,21 +608,53 @@ Eucalyptus,85,-117.1610,32.7114`;
     }];
   }
 
+  // Picks the right renderer for the chosen style + field choices
+  function buildRenderer(style, choices, features, numeric) {
+    switch (style.id) {
+      case "pie_chart":
+        return buildPieChartRenderer(numeric);
+      case "categorical_size": {
+        const r = buildUniqueRenderer(choices.color, features);
+        const sv = buildSizeVariable(choices.size, features);
+        if (sv) r.visualVariables = [sv];
+        return r;
+      }
+      case "categorical":
+        return buildUniqueRenderer(choices.color, features);
+      case "graduated": {
+        const r = { type: "simple", symbol: buildSimpleSymbol(), label: choices.size.replace(/_/g, " ") };
+        const sv = buildSizeVariable(choices.size, features);
+        if (sv) r.visualVariables = [sv];
+        return r;
+      }
+      case "simple":
+      default:
+        return { type: "simple", symbol: buildSimpleSymbol() };
+    }
+  }
+
+  function buildPopupTitle(style, choices) {
+    switch (style.id) {
+      case "pie_chart":         return "Composition breakdown";
+      case "categorical_size":  return `{${choices.color}} – {${choices.size}}`;
+      case "categorical":       return `{${choices.color}}`;
+      case "graduated":         return `{${choices.size}}`;
+      case "simple":
+      default:                  return "Point";
+    }
+  }
+
   // -----------------------------------------------------------------------
   // Build operational layer + web map
   // -----------------------------------------------------------------------
-  function buildOperationalLayer(fcLayer, fields, features, choices, baseTitle) {
-    const renderer = buildRenderer(choices.color, choices.size, features);
+  function buildOperationalLayer(fcLayer, fields, features, numeric, style, choices, baseTitle) {
+    const renderer = buildRenderer(style, choices, features, numeric);
     const labelingInfo = buildLabelingInfo(choices.label);
-
-    const popupTitle = choices.color
-      ? `{${choices.color}}` + (choices.size ? ` – {${choices.size}}` : "")
-      : (choices.size ? `{${choices.size}}` : "Point");
+    const popupTitle = buildPopupTitle(style, choices);
 
     const popupFieldInfos = fields
       .filter(f => !OID_NAMES.has(f.name) && !COORD_NAMES.has(f.name.toLowerCase()))
       .map(f => ({ fieldName: f.name, label: f.name.replace(/_/g, " "), visible: true }));
-
     const popupInfo = { title: popupTitle, fieldInfos: popupFieldInfos };
 
     const drawingInfo = { renderer };
@@ -576,8 +674,7 @@ Eucalyptus,85,-117.1610,32.7114`;
       id: `fieldwork_${Date.now()}`,
       title: baseTitle,
       layerType: "ArcGISFeatureLayer",
-      visibility: true,
-      opacity: 1,
+      visibility: true, opacity: 1,
       showLegend: true,
       popupInfo,
       featureCollection: {
@@ -615,7 +712,7 @@ Eucalyptus,85,-117.1610,32.7114`;
       timeZone: "system",
       version: "2.33",
       authoringApp: "MapMakerFieldworkPOC-Canvas",
-      authoringAppVersion: "0.4-m4"
+      authoringAppVersion: "0.41-m4"
     };
   }
 
@@ -631,9 +728,6 @@ Eucalyptus,85,-117.1610,32.7114`;
     return data;
   }
 
-  // -----------------------------------------------------------------------
-  // Validation
-  // -----------------------------------------------------------------------
   function validateFeatures(features) {
     if (features.length < 2) {
       throw new Error("Your file needs at least 2 rows of data with coordinates.");
@@ -645,7 +739,7 @@ Eucalyptus,85,-117.1610,32.7114`;
   }
 
   // -----------------------------------------------------------------------
-  // Workflow stages
+  // Main pipeline
   // -----------------------------------------------------------------------
   async function loadAndAnalyze(csvBlob, displayName) {
     state.csvBlob = csvBlob;
@@ -653,9 +747,7 @@ Eucalyptus,85,-117.1610,32.7114`;
 
     showStage("publishing");
     const progressList = document.getElementById("progressList");
-    progressList.innerHTML = `
-      <div class="progress"><div class="spinner"></div><div class="progress-text">Reading your file…</div></div>
-    `;
+    progressList.innerHTML = `<div class="progress"><div class="spinner"></div><div class="progress-text">Reading your file…</div></div>`;
 
     try {
       const publishParams = await analyzeCSV(csvBlob);
@@ -671,98 +763,141 @@ Eucalyptus,85,-117.1610,32.7114`;
       const { numeric, categorical } = classifyColumns(state.fields, state.features);
       state.numeric = numeric;
       state.categorical = categorical;
-      state.autoPicks = pickAutoDefaults(numeric, categorical);
+      state.style = pickAutoStyle(numeric, categorical);
+      state.fieldChoices = pickAutoFields(state.style, numeric, categorical);
 
-      // Brief pause to let the user feel the work being done
       await new Promise(r => setTimeout(r, 400));
-      showConfigurePanel();
+      renderConfigurePanel();
     } catch (err) {
       showError(err.message);
     }
   }
 
-  function showConfigurePanel() {
+  function renderConfigurePanel() {
     showStage("configure");
+
     document.getElementById("configureSubtitle").textContent =
-      `Found ${state.features.length} points and ${state.numeric.length + state.categorical.length} usable columns. Review the choices below or hit Publish.`;
+      `Found ${state.features.length} points · ${state.numeric.length} numeric, ${state.categorical.length} categorical columns.`;
 
-    populateSelect("colorBySelect", state.categorical, state.autoPicks.color);
-    populateSelect("sizeBySelect", state.numeric, state.autoPicks.size);
-    populateSelect("labelBySelect", state.categorical, state.autoPicks.label);
-
+    renderStyleOptions();
+    renderFieldsPanel();
     updateConfigSummary();
+    setupAutoPublish();
+  }
 
+  function renderStyleOptions() {
+    const container = document.getElementById("styleOptions");
+    container.innerHTML = "";
+    for (const style of STYLES) {
+      const available = isStyleAvailable(style, state.numeric, state.categorical);
+      const div = document.createElement("div");
+      div.className = "style-option" + (style.id === state.style.id ? " selected" : "") + (available ? "" : " disabled");
+      div.innerHTML = `
+        <div class="style-option-icon">${style.icon}</div>
+        <div class="style-option-name">${style.name}</div>
+        <div class="style-option-hint">${style.hint}</div>
+      `;
+      if (available) {
+        div.addEventListener("click", () => {
+          cancelAutoPublish();
+          state.style = style;
+          // Reset field choices to auto-picks for the new style
+          state.fieldChoices = pickAutoFields(style, state.numeric, state.categorical);
+          renderStyleOptions();
+          renderFieldsPanel();
+          updateConfigSummary();
+        });
+      }
+      container.appendChild(div);
+    }
+  }
+
+  function renderFieldsPanel() {
+    const container = document.getElementById("fieldsContainer");
+    container.innerHTML = "";
+
+    if (!state.style.fields.length) {
+      document.getElementById("fieldsSection").classList.add("hidden");
+      return;
+    }
+    document.getElementById("fieldsSection").classList.remove("hidden");
+
+    for (const fieldKey of state.style.fields) {
+      const fieldDef = FIELD_DEFS[fieldKey];
+      if (!fieldDef) continue;
+      const sourceList = fieldDef.source === "numeric" ? state.numeric : state.categorical;
+
+      const row = document.createElement("div");
+      row.className = "config-row";
+      row.innerHTML = `
+        <div class="config-label"><span class="config-icon">${fieldDef.icon}</span>${fieldDef.label}</div>
+        <select class="config-select" data-field="${fieldKey}">
+          <option value="${NONE_VALUE}">— none —</option>
+          ${sourceList.map(opt => `<option value="${opt}">${opt.replace(/_/g, " ")}</option>`).join("")}
+        </select>
+      `;
+      const select = row.querySelector("select");
+      select.value = state.fieldChoices[fieldKey] || NONE_VALUE;
+      select.addEventListener("change", () => {
+        cancelAutoPublish();
+        state.fieldChoices[fieldKey] = select.value === NONE_VALUE ? null : select.value;
+        updateConfigSummary();
+      });
+      container.appendChild(row);
+    }
+  }
+
+  function updateConfigSummary() {
+    const c = state.fieldChoices;
+    let summary = "";
+    switch (state.style.id) {
+      case "pie_chart":
+        summary = `Each point will show a pie chart of ${state.numeric.length} numeric columns.`;
+        break;
+      case "categorical_size":
+        summary = `Each point colored by ${c.color || "—"}, sized by ${c.size || "—"}.`;
+        break;
+      case "categorical":
+        summary = `Each point colored by ${c.color || "—"}.`;
+        break;
+      case "graduated":
+        summary = `Each point sized by ${c.size || "—"}.`;
+        break;
+      case "simple":
+        summary = `Each point shown as a simple marker.`;
+        break;
+    }
+    if (c.label) summary += ` Labels show ${c.label}.`;
+    document.getElementById("configSummary").textContent = summary;
+  }
+
+  function setupAutoPublish() {
+    const banner = document.getElementById("autoPublishBanner");
     if (state.isSample) {
-      const summaryEl = document.getElementById("configSummary");
-      summaryEl.innerHTML = `<em>Auto-publishing in 2 seconds…</em>` + (summaryEl.innerHTML ? `<br>${summaryEl.innerHTML}` : "");
-      setTimeout(() => {
+      banner.classList.remove("hidden");
+      state.autoPublishTimer = setTimeout(() => {
         if (!stages.configure.classList.contains("hidden")) {
           state.isSample = false;
           publishMap();
         }
       }, 2000);
-    }
-  }
-
-  function populateSelect(id, options, defaultValue) {
-    const sel = document.getElementById(id);
-    sel.innerHTML = "";
-    const noneOpt = document.createElement("option");
-    noneOpt.value = NONE_VALUE;
-    noneOpt.textContent = "— none —";
-    sel.appendChild(noneOpt);
-    for (const opt of options) {
-      const o = document.createElement("option");
-      o.value = opt;
-      o.textContent = opt.replace(/_/g, " ");
-      sel.appendChild(o);
-    }
-    sel.value = defaultValue || NONE_VALUE;
-    sel.addEventListener("change", () => {
-      // User interaction cancels auto-publish
-      state.isSample = false;
-      updateConfigSummary();
-    });
-  }
-
-  function getCurrentChoices() {
-    return {
-      color: getSelectValue("colorBySelect"),
-      size: getSelectValue("sizeBySelect"),
-      label: getSelectValue("labelBySelect"),
-    };
-  }
-
-  function getSelectValue(id) {
-    const v = document.getElementById(id).value;
-    return v === NONE_VALUE ? null : v;
-  }
-
-  function updateConfigSummary() {
-    const choices = getCurrentChoices();
-    let summary = "";
-    if (choices.color && choices.size) {
-      summary = `Each point will show ${state.features.length} trees, colored by ${choices.color} and sized by ${choices.size}.`;
-    } else if (choices.color) {
-      summary = `${state.features.length} points colored by ${choices.color}.`;
-    } else if (choices.size) {
-      summary = `${state.features.length} points sized by ${choices.size}.`;
     } else {
-      summary = `${state.features.length} simple points.`;
+      banner.classList.add("hidden");
     }
-    if (choices.label) summary += ` Labels show ${choices.label}.`;
-    const el = document.getElementById("configSummary");
-    if (state.isSample) {
-      el.innerHTML = `<em>Auto-publishing in 2 seconds…</em><br>${summary}`;
-    } else {
-      el.textContent = summary;
+  }
+
+  function cancelAutoPublish() {
+    if (state.autoPublishTimer) {
+      clearTimeout(state.autoPublishTimer);
+      state.autoPublishTimer = null;
     }
+    state.isSample = false;
+    document.getElementById("autoPublishBanner").classList.add("hidden");
   }
 
   async function publishMap() {
     showStage("publishing");
     const progressList = document.getElementById("progressList");
-
     progressList.innerHTML = `
       <div class="progress-step-done">Your file was read</div>
       <div class="progress-step-done">Columns detected</div>
@@ -770,9 +905,11 @@ Eucalyptus,85,-117.1610,32.7114`;
     `;
 
     try {
-      const choices = getCurrentChoices();
       const baseTitle = state.displayName.replace(/\.csv$/i, "").replace(/_/g, " ");
-      const opLayer = buildOperationalLayer(state.fcLayer, state.fields, state.features, choices, baseTitle);
+      const opLayer = buildOperationalLayer(
+        state.fcLayer, state.fields, state.features, state.numeric,
+        state.style, state.fieldChoices, baseTitle
+      );
       const extent = computeExtent(state.features);
       const webMapJson = buildWebMapJson(opLayer, extent);
 
@@ -785,23 +922,21 @@ Eucalyptus,85,-117.1610,32.7114`;
 
       const result = await publishViaBridge(
         baseTitle,
-        `Fieldwork data: ${state.features.length} points`,
-        `mapmaker, fieldwork`,
+        `Fieldwork data: ${state.features.length} points (${state.style.id})`,
+        `mapmaker, fieldwork, ${state.style.id}`,
         webMapJson
       );
 
-      showResult(result, state.features.length, choices);
+      showResult(result, state.features.length);
     } catch (err) {
       showError(err.message);
     }
   }
 
-  function showResult(result, pointCount, choices) {
+  function showResult(result, pointCount) {
     showStage("result");
-    let detailParts = [`${pointCount} points published`];
-    if (choices.color) detailParts.push(`colored by ${choices.color}`);
-    if (choices.size) detailParts.push(`sized by ${choices.size}`);
-    document.getElementById("resultDetail").textContent = detailParts.join(" · ");
+    document.getElementById("resultDetail").textContent =
+      `${pointCount} points published as ${state.style.name.toLowerCase()}`;
     document.getElementById("resultCta").href = result.mapMakerUrl;
     document.getElementById("resultMeta").textContent = `Item ID: ${result.itemId}`;
   }
@@ -812,17 +947,18 @@ Eucalyptus,85,-117.1610,32.7114`;
   }
 
   function reset() {
+    cancelAutoPublish();
     Object.assign(state, {
       csvBlob: null, displayName: null, fcLayer: null,
       features: [], fields: [], numeric: [], categorical: [],
-      autoPicks: { color: null, size: null, label: null },
-      isSample: false,
+      style: null, fieldChoices: { color: null, size: null, label: null },
+      isSample: false, autoPublishTimer: null,
     });
     showStage("upload");
   }
 
   // -----------------------------------------------------------------------
-  // Wire up UI
+  // Wire up
   // -----------------------------------------------------------------------
   const dropZone = document.getElementById("dropZone");
   const fileInput = document.getElementById("fileInput");
@@ -858,7 +994,10 @@ Eucalyptus,85,-117.1610,32.7114`;
     loadAndAnalyze(blob, "Sample Tree Survey.csv");
   });
 
-  document.getElementById("publishBtn").addEventListener("click", () => publishMap());
+  document.getElementById("publishBtn").addEventListener("click", () => {
+    cancelAutoPublish();
+    publishMap();
+  });
   document.getElementById("restartBtn").addEventListener("click", reset);
   document.getElementById("anotherBtn").addEventListener("click", reset);
   document.getElementById("errorRestartBtn").addEventListener("click", reset);
