@@ -272,7 +272,7 @@
     </div>
 
     <p style="color: #888; font-size: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #eee;">
-      Up to 2000 rows per map. Larger datasets are best handled in a full ArcGIS Online account.
+      Up to 1000 rows per map. Larger datasets are best handled in a full ArcGIS Online account.
     </p>
   </div>
 
@@ -305,7 +305,7 @@
     <h2>This file is a bit large</h2>
     <p class="subtitle" id="toolargeSubtitle"></p>
     <div class="btn-row" style="margin-top: 24px;">
-      <button id="truncateBtn" class="btn btn-large">Map first 2000 rows</button>
+      <button id="truncateBtn" class="btn btn-large">Map first 1000 rows</button>
       <button id="toolargeRestartBtn" class="btn btn-secondary">Try a different file</button>
     </div>
   </div>
@@ -374,9 +374,10 @@
 
   const NONE_VALUE = "__none__";
 
-  // Cap on features per map — keeps inline feature collection size manageable
-  // and rendering performant on basic devices like school Chromebooks.
-  const MAX_ROWS = 2000;
+  // Cap on features per map — AGOL's anonymous /generate endpoint enforces
+  // a 1000-row server-side limit. Keeping our cap at that boundary lets us
+  // give the user a friendly message before they hit the AGOL error.
+  const MAX_ROWS = 1000;
 
   // -----------------------------------------------------------------------
   // Map style definitions — what each style needs
@@ -802,29 +803,68 @@ Eucalyptus,85,-117.1610,32.7114`;
   // -----------------------------------------------------------------------
   // Main pipeline
   // -----------------------------------------------------------------------
-  function showTooLargePanel() {
+
+  // Count CSV data rows in the browser before sending to AGOL. Returns the
+  // number of rows excluding the header. Reads the blob as text.
+  async function countCSVRows(csvBlob) {
+    const text = await csvBlob.text();
+    // Trim trailing whitespace/newlines, then count newline-separated lines
+    const lines = text.replace(/\s+$/, "").split(/\r?\n/);
+    // Subtract 1 for the header row
+    return Math.max(0, lines.length - 1);
+  }
+
+  // Take a CSV blob and return a new blob with at most maxRows data rows.
+  // Preserves the header.
+  async function truncateCSVBlob(csvBlob, maxRows) {
+    const text = await csvBlob.text();
+    const lines = text.replace(/\s+$/, "").split(/\r?\n/);
+    const header = lines[0];
+    const dataRows = lines.slice(1, 1 + maxRows);
+    const truncated = [header, ...dataRows].join("\n");
+    return new Blob([truncated], { type: "text/csv" });
+  }
+
+  function showTooLargePanel(rowCount) {
     cancelAutoPublish();
     showStage("toolarge");
     document.getElementById("toolargeSubtitle").textContent =
-      `Your file has ${state.features.length} rows. The MapMaker fieldwork upload supports up to ${MAX_ROWS} rows per map.`;
+      `Your file has ${rowCount} rows. The MapMaker fieldwork upload supports up to ${MAX_ROWS} rows per map.`;
   }
 
-  function continueAfterTruncate() {
-    // Trim features and update extent calc inputs
-    state.features = state.features.slice(0, MAX_ROWS);
-    state.fcLayer.featureSet.features = state.features;
+  // The original raw CSV blob kept aside so we can truncate it on demand
+  let pendingOversizedBlob = null;
+  let pendingDisplayName = null;
 
-    const { numeric, categorical } = classifyColumns(state.fields, state.features);
-    state.numeric = numeric;
-    state.categorical = categorical;
-    state.style = pickAutoStyle(numeric, categorical);
-    state.fieldChoices = pickAutoFields(state.style, numeric, categorical);
-    renderConfigurePanel();
+  async function continueAfterTruncate() {
+    if (!pendingOversizedBlob) return;
+    const trimmedBlob = await truncateCSVBlob(pendingOversizedBlob, MAX_ROWS);
+    const name = pendingDisplayName;
+    pendingOversizedBlob = null;
+    pendingDisplayName = null;
+    // Now run the normal pipeline with the trimmed blob
+    loadAndAnalyze(trimmedBlob, name);
   }
 
   async function loadAndAnalyze(csvBlob, displayName) {
     state.csvBlob = csvBlob;
     state.displayName = displayName;
+
+    // Pre-flight check — count rows before sending to AGOL.
+    // AGOL's /generate endpoint enforces a 1000-row cap server-side, and we'd
+    // rather show a friendly message than a generic error.
+    try {
+      const rowCount = await countCSVRows(csvBlob);
+      if (rowCount > MAX_ROWS) {
+        pendingOversizedBlob = csvBlob;
+        pendingDisplayName = displayName;
+        showTooLargePanel(rowCount);
+        return;
+      }
+    } catch (err) {
+      // If we couldn't read the file, fall through and let AGOL surface the error
+      console.warn("Pre-flight row count failed:", err);
+    }
 
     showStage("publishing");
     const progressList = document.getElementById("progressList");
@@ -840,12 +880,6 @@ Eucalyptus,85,-117.1610,32.7114`;
       state.features = fcLayer.featureSet.features;
       state.fields = fcLayer.layerDefinition.fields;
       validateFeatures(state.features);
-
-      // If file exceeds the cap, ask the user before proceeding.
-      if (state.features.length > MAX_ROWS) {
-        showTooLargePanel();
-        return;
-      }
 
       const { numeric, categorical } = classifyColumns(state.fields, state.features);
       state.numeric = numeric;
@@ -1051,6 +1085,8 @@ Eucalyptus,85,-117.1610,32.7114`;
 
   function reset() {
     cancelAutoPublish();
+    pendingOversizedBlob = null;
+    pendingDisplayName = null;
     Object.assign(state, {
       csvBlob: null, displayName: null, fcLayer: null,
       features: [], fields: [], numeric: [], categorical: [],
