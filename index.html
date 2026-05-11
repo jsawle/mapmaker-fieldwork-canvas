@@ -270,6 +270,10 @@
       <button id="sampleBtn" class="btn btn-secondary">Try a sample</button>
       <span style="color: #888; font-size: 13px;">No file? Click here for a tree-survey demo.</span>
     </div>
+
+    <p style="color: #888; font-size: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #eee;">
+      Up to 2000 rows per map. Larger datasets are best handled in a full ArcGIS Online account.
+    </p>
   </div>
 
   <!-- STAGE 2: Configure -->
@@ -293,6 +297,16 @@
     <div class="btn-row" style="margin-top: 24px;">
       <button id="publishBtn" class="btn btn-large">Publish to MapMaker</button>
       <button id="restartBtn" class="btn btn-secondary">Start over</button>
+    </div>
+  </div>
+
+  <!-- STAGE 2A: File too large -->
+  <div id="stage-toolarge" class="card hidden">
+    <h2>This file is a bit large</h2>
+    <p class="subtitle" id="toolargeSubtitle"></p>
+    <div class="btn-row" style="margin-top: 24px;">
+      <button id="truncateBtn" class="btn btn-large">Map first 2000 rows</button>
+      <button id="toolargeRestartBtn" class="btn btn-secondary">Try a different file</button>
     </div>
   </div>
 
@@ -359,6 +373,10 @@
   const GENERATE_URL = "https://www.arcgis.com/sharing/rest/content/features/generate";
 
   const NONE_VALUE = "__none__";
+
+  // Cap on features per map — keeps inline feature collection size manageable
+  // and rendering performant on basic devices like school Chromebooks.
+  const MAX_ROWS = 2000;
 
   // -----------------------------------------------------------------------
   // Map style definitions — what each style needs
@@ -453,6 +471,7 @@ Eucalyptus,85,-117.1610,32.7114`;
   const stages = {
     upload:     document.getElementById("stage-upload"),
     configure:  document.getElementById("stage-configure"),
+    toolarge:   document.getElementById("stage-toolarge"),
     publishing: document.getElementById("stage-publishing"),
     result:     document.getElementById("stage-result"),
     error:      document.getElementById("errorBox"),
@@ -783,6 +802,26 @@ Eucalyptus,85,-117.1610,32.7114`;
   // -----------------------------------------------------------------------
   // Main pipeline
   // -----------------------------------------------------------------------
+  function showTooLargePanel() {
+    cancelAutoPublish();
+    showStage("toolarge");
+    document.getElementById("toolargeSubtitle").textContent =
+      `Your file has ${state.features.length} rows. The MapMaker fieldwork upload supports up to ${MAX_ROWS} rows per map.`;
+  }
+
+  function continueAfterTruncate() {
+    // Trim features and update extent calc inputs
+    state.features = state.features.slice(0, MAX_ROWS);
+    state.fcLayer.featureSet.features = state.features;
+
+    const { numeric, categorical } = classifyColumns(state.fields, state.features);
+    state.numeric = numeric;
+    state.categorical = categorical;
+    state.style = pickAutoStyle(numeric, categorical);
+    state.fieldChoices = pickAutoFields(state.style, numeric, categorical);
+    renderConfigurePanel();
+  }
+
   async function loadAndAnalyze(csvBlob, displayName) {
     state.csvBlob = csvBlob;
     state.displayName = displayName;
@@ -801,6 +840,12 @@ Eucalyptus,85,-117.1610,32.7114`;
       state.features = fcLayer.featureSet.features;
       state.fields = fcLayer.layerDefinition.fields;
       validateFeatures(state.features);
+
+      // If file exceeds the cap, ask the user before proceeding.
+      if (state.features.length > MAX_ROWS) {
+        showTooLargePanel();
+        return;
+      }
 
       const { numeric, categorical } = classifyColumns(state.fields, state.features);
       state.numeric = numeric;
@@ -1059,6 +1104,8 @@ Eucalyptus,85,-117.1610,32.7114`;
   document.getElementById("restartBtn").addEventListener("click", reset);
   document.getElementById("anotherBtn").addEventListener("click", reset);
   document.getElementById("errorRestartBtn").addEventListener("click", reset);
+  document.getElementById("truncateBtn").addEventListener("click", continueAfterTruncate);
+  document.getElementById("toolargeRestartBtn").addEventListener("click", reset);
 </script>
 
 </body>
