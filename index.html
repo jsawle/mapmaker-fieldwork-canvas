@@ -239,7 +239,7 @@
 
 <div class="header">
   <div>
-    <div class="header-title">MAPMAKER · upload fieldwork data</div>
+    <div class="header-title">MAPMAKER · Fieldwork upload</div>
     <div class="header-sub">Turn your spreadsheet into a map</div>
   </div>
 </div>
@@ -358,43 +358,43 @@
   // -----------------------------------------------------------------------
   const STYLES = [
     {
-      id: "pie_chart",
-      name: "Pie charts",
-      icon: "🥧",
-      hint: "Show composition across 3+ numeric columns",
-      requires: { minNumeric: 3 },
-      fields: ["label"], // label optional
-    },
-    {
-      id: "categorical_size",
-      name: "Color & size",
-      icon: "🎨",
-      hint: "Color by group, size by a value",
-      requires: { minCategorical: 1, minNumeric: 1 },
-      fields: ["color", "size", "label"],
+      id: "simple",
+      name: "Map locations",
+      icon: "📍",
+      hint: "Just points on a map",
+      requires: {},
+      fields: ["label"],
     },
     {
       id: "categorical",
-      name: "Color by group",
+      name: "Map by type",
       icon: "🏷️",
-      hint: "Color points by a category",
+      hint: "e.g. mapping tree species, sentiment, qualitative data, etc.",
       requires: { minCategorical: 1 },
       fields: ["color", "label"],
     },
     {
       id: "graduated",
-      name: "Graduated size",
+      name: "Map by size",
       icon: "📏",
-      hint: "Size points by a numeric value",
+      hint: "e.g. height of a tree, traffic counts, noise in Db, etc.",
       requires: { minNumeric: 1 },
       fields: ["size", "label"],
     },
     {
-      id: "simple",
-      name: "Simple points",
-      icon: "📍",
-      hint: "Just plot the points",
-      requires: {},
+      id: "categorical_size",
+      name: "Map by type & size",
+      icon: "🎨",
+      hint: "e.g. tree height as size, species as colour",
+      requires: { minCategorical: 1, minNumeric: 1 },
+      fields: ["color", "size", "label"],
+    },
+    {
+      id: "pie_chart",
+      name: "Pie charts",
+      icon: "🥧",
+      hint: "e.g. litter surveys, plant species in a quadrat, traffic counts",
+      requires: { minNumeric: 3 },
       fields: ["label"],
     },
   ];
@@ -517,12 +517,16 @@ Eucalyptus,85,-117.1610,32.7114`;
     return true;
   }
 
+  // The order in which auto-pick walks — richest visualization first.
+  // Decoupled from STYLES (which is the visual ordering shown to teachers).
+  const AUTO_PICK_ORDER = ["pie_chart", "categorical_size", "categorical", "graduated", "simple"];
+
   function pickAutoStyle(numeric, categorical) {
-    // Order matters — try the richest visualization first
-    for (const style of STYLES) {
-      if (isStyleAvailable(style, numeric, categorical)) return style;
+    for (const id of AUTO_PICK_ORDER) {
+      const style = STYLES.find(s => s.id === id);
+      if (style && isStyleAvailable(style, numeric, categorical)) return style;
     }
-    return STYLES[STYLES.length - 1]; // simple fallback
+    return STYLES.find(s => s.id === "simple");
   }
 
   function pickAutoFields(style, numeric, categorical) {
