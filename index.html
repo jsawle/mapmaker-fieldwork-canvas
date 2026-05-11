@@ -567,7 +567,21 @@ Eucalyptus,85,-117.1610,32.7114`;
     };
   }
 
-  function buildPieChartRenderer(numericFields) {
+  function buildPieChartRenderer(numericFields, features) {
+    // Compute total per feature; we use this for proportional sizing.
+    // Inject a synthetic _pieTotal attribute on each feature.
+    const totals = features.map(f => {
+      let sum = 0;
+      for (const fld of numericFields) {
+        const v = f.attributes[fld];
+        if (typeof v === "number" && !isNaN(v)) sum += v;
+      }
+      f.attributes._pieTotal = sum;
+      return sum;
+    });
+    const minTotal = Math.min(...totals);
+    const maxTotal = Math.max(...totals);
+
     return {
       type: "pieChart",
       attributes: numericFields.slice(0, 8).map((fld, i) => ({
@@ -575,9 +589,18 @@ Eucalyptus,85,-117.1610,32.7114`;
         color: PALETTE[i % PALETTE.length],
         label: fld.replace(/_/g, " ")
       })),
+      // base size of 24 acts as a fallback if visual variable can't compute
       size: 24,
       holePercentage: 0.4,
-      outline: { color: [255, 255, 255, 255], width: 0.5, type: "esriSLS", style: "esriSLSSolid" }
+      outline: { color: [255, 255, 255, 255], width: 0.5, type: "esriSLS", style: "esriSLSSolid" },
+      visualVariables: [{
+        type: "sizeInfo",
+        field: "_pieTotal",
+        minSize: 14,
+        maxSize: 48,
+        minDataValue: minTotal,
+        maxDataValue: maxTotal
+      }]
     };
   }
 
@@ -623,7 +646,7 @@ Eucalyptus,85,-117.1610,32.7114`;
   function buildRenderer(style, choices, features, numeric) {
     switch (style.id) {
       case "pie_chart":
-        return buildPieChartRenderer(numeric);
+        return buildPieChartRenderer(numeric, features);
       case "categorical_size": {
         const r = buildUniqueRenderer(choices.color, features);
         const sv = buildSizeVariable(choices.size, features);
@@ -664,7 +687,7 @@ Eucalyptus,85,-117.1610,32.7114`;
     const popupTitle = buildPopupTitle(style, choices);
 
     const popupFieldInfos = fields
-      .filter(f => !OID_NAMES.has(f.name) && !COORD_NAMES.has(f.name.toLowerCase()))
+      .filter(f => !OID_NAMES.has(f.name) && !COORD_NAMES.has(f.name.toLowerCase()) && f.name !== "_pieTotal")
       .map(f => ({ fieldName: f.name, label: f.name.replace(/_/g, " "), visible: true }));
     const popupInfo = { title: popupTitle, fieldInfos: popupFieldInfos };
 
@@ -674,8 +697,16 @@ Eucalyptus,85,-117.1610,32.7114`;
       drawingInfo.showLabels = true;
     }
 
+    // For pie charts, declare the synthetic _pieTotal field so the renderer
+    // can reference it. The buildPieChartRenderer step injected the attribute
+    // values onto each feature already.
+    const extraFields = (style.id === "pie_chart")
+      ? [{ name: "_pieTotal", type: "esriFieldTypeDouble", alias: "_pieTotal", nullable: true, editable: false }]
+      : [];
+
     const layerDef = {
       ...fcLayer.layerDefinition,
+      fields: [...(fcLayer.layerDefinition.fields || []), ...extraFields],
       drawingInfo,
       showLegend: true,
       ...(labelingInfo ? { hasLabels: true } : {})
@@ -879,7 +910,7 @@ Eucalyptus,85,-117.1610,32.7114`;
     let summary = "";
     switch (state.style.id) {
       case "pie_chart":
-        summary = `Each point will show a pie chart of ${state.numeric.length} numeric columns.`;
+        summary = `Each point will show a pie chart of ${state.numeric.length} numeric columns, sized by total.`;
         break;
       case "categorical_size":
         summary = `Each point colored by ${c.color || "—"}, sized by ${c.size || "—"}.`;
